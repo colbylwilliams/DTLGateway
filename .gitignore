@@ -1,0 +1,7 @@
+local/
+
+*.pfx
+*.p12
+*.msi
+
+*.DS_Store
