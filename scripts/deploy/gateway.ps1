@@ -76,9 +76,9 @@ function Install-ApplicationRequestRouting {
         [string] $Hostname
     )
 
-    @( "http://go.microsoft.com/fwlink/?LinkID=615137", "http://go.microsoft.com/fwlink/?LinkID=615136" ) | % {
+    @( "https://download.microsoft.com/download/1/2/8/128E2E22-C1B9-44A4-BE2A-5859ED1D4592/rewrite_amd64_en-US.msi", "https://download.microsoft.com/download/E/9/8/E9849D6A-020E-47E4-9FD0-A023E99B54EB/requestRouter_amd64.msi" ) | % {
 
-        $msiPath = (Join-Path $PSScriptRoot ($_.Substring($_.LastIndexOf("=") + 1))) + ".msi"
+        $msiPath = (Join-Path $PSScriptRoot ($_.Substring($_.LastIndexOf("/") + 1)))
         $logPath = [System.IO.Path]::ChangeExtension($msiPath, ".log")
 
         try {
