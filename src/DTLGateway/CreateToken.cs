@@ -4,19 +4,19 @@
  */
 
 using System;
-using System.Configuration;
+// using System.Configuration;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
+using System.Globalization;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
-using System.Globalization;
-using System.Security.Cryptography;
 using System.Text.RegularExpressions;
+using System.Security.Cryptography;
+using Newtonsoft.Json;
 using DTLGateway.Model;
 
 namespace DTLGateway
@@ -57,7 +57,7 @@ namespace DTLGateway
             }
             catch (Exception exc)
             {
-                log.LogError($"Failed to process request {executionContext.InvocationId}", exc);
+                log.LogError(exc, $"Failed to process request {executionContext.InvocationId}");
 
                 return new StatusCodeResult(500);
             }
@@ -112,7 +112,7 @@ namespace DTLGateway
                 }
                 catch (Exception exc)
                 {
-                    throw new ConfigurationErrorsException($"Failed to parse token lifetime '{tokenLifetime}' from configuration", exc);
+                    throw new Exception($"Failed to parse token lifetime '{tokenLifetime}' from configuration", exc);
                 }
             }
 
