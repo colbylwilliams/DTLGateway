@@ -41,7 +41,7 @@ function Remove-CertificatePrivateKey {
     )
 
     # resolve the certificate ty thumbprint
-    $certificate = Get-ChildItem -Path CERT:\LocalMachine\my | Where-Object { $_.Thumbprint -eq $Thumbprint } | select -First 1
+    $certificate = Get-ChildItem -Path CERT:\LocalMachine\my | Where-Object { $_.Thumbprint -eq $Thumbprint } | Select-Object -First 1
 
     if ($certificate) {
 
@@ -76,28 +76,22 @@ function Install-ApplicationRequestRouting {
         [string] $Hostname
     )
 
-    @( "https://download.microsoft.com/download/1/2/8/128E2E22-C1B9-44A4-BE2A-5859ED1D4592/rewrite_amd64_en-US.msi", "https://download.microsoft.com/download/E/9/8/E9849D6A-020E-47E4-9FD0-A023E99B54EB/requestRouter_amd64.msi" ) | % {
+    $msiUrl = "https://download.microsoft.com/download/C/F/F/CFF3A0B8-99D4-41A2-AE1A-496C08BEB904/WebPlatformInstaller_amd64_en-US.msi"
+    $msiPath = (Join-Path $PSScriptRoot ($msiUrl.Substring($msiUrl.LastIndexOf("/") + 1))) + ".msi"
 
-        $msiPath = (Join-Path $PSScriptRoot ($_.Substring($_.LastIndexOf("/") + 1)))
-        $logPath = [System.IO.Path]::ChangeExtension($msiPath, ".log")
+    if (!(Test-Path $msiPath -PathType leaf)) {
 
-        try {
-
-            # download MSI
-            Invoke-WebRequest $_ -OutFile $msiPath
-
-            # install MSI
-            Start-Process "msiexec.exe" -ArgumentList @( "/qn", "/i $msiPath", "/log $logPath" ) -NoNewWindow -Wait | Out-Null
-
-            # everything went well - remove the log file
-            Remove-Item -Path $logPath -Force -ErrorAction SilentlyContinue | Out-Null
-        }
-        finally {
-
-            # remove MSI file
-            Remove-Item -Path $msiPath -Force -ErrorAction SilentlyContinue | Out-Null
-        }
+        # download WebPI installer if needed
+        Invoke-WebRequest $msiUrl -OutFile $msiPath
     }
+
+    # install WebPI
+    $logPath = [System.IO.Path]::ChangeExtension($msiPath, ".log")
+    Start-Process "msiexec.exe" -ArgumentList @( "/qn", "/i $msiPath", "/log $logPath" ) -NoNewWindow -Wait | Out-Null
+
+    # install WebPI packages
+    $logPath = [System.IO.Path]::ChangeExtension($logPath, ".packages.log")
+    Start-Process "C:\Program Files\Microsoft\Web Platform Installer\WebPiCmd-x64.exe" -ArgumentList @( "/Install", "/Products:'UrlRewrite2,ARRv3_0'", "/AcceptEULA", "/Log:$logPath" ) -NoNewWindow -Wait | Out-Null
 
     if ($Hostname) {
 
@@ -123,7 +117,7 @@ function Install-ApplicationRequestRouting {
 
 try {
 
-    Start-Transcript -Path (Join-Path $PSScriptRoot "azuredeploy.log")
+    Start-Transcript -Path (Join-Path $PSScriptRoot "gateway.log")
 
     # install RDS Gateway Windows Feature
     Add-WindowsFeature -Name RDS-Gateway -IncludeAllSubFeature
@@ -169,7 +163,7 @@ try {
     $wmi.RecycleRpcApplicationPools()
 
     # restart gateway service
-    @("W3SVC", "TSGateway") | % { Restart-Service -Name $_ -Force }
+    @("W3SVC", "TSGateway") | ForEach-Object { Restart-Service -Name $_ -Force }
 }
 finally {
 
