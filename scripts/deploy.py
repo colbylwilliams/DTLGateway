@@ -6,9 +6,9 @@ from pathlib import Path
 from datetime import date
 
 
-# ----------------
+# ----------------------
 # args
-# ----------------
+# ----------------------
 
 parser = argparse.ArgumentParser()
 
@@ -49,9 +49,9 @@ username = args.username
 password = args.password
 
 
-# ----------------
+# ----------------------
 # ssl & sign certs
-# ----------------
+# ----------------------
 
 ssl_cert = Path(args.ssl_cert)
 ssl_cert_thumbprint = args.ssl_cert_thumbprint
@@ -90,9 +90,9 @@ sign_secret = base64.b64encode(json.dumps({
 }, ensure_ascii=True).encode('ascii'))
 
 
-# ----------------
+# ----------------------
 # clean name
-# ----------------
+# ----------------------
 
 namel = ''
 namelc = ''
@@ -104,12 +104,12 @@ for n in name.lower():
 
 storage_name = namelc
 kv_name = namel + '-kv'
-funcapp_name = '{}-functions'.format(namel)
+funcapp_name = '{}-fa'.format(namel)
 
 
-# ----------------
+# ----------------------
 # azure account
-# ----------------
+# ----------------------
 
 print('')
 print('Getting Azure account information')
@@ -123,9 +123,9 @@ except json.decoder.JSONDecodeError:
     raise EnvironmentError('Not logged in to az command line.  Please run az login then try again.')
 
 
-# ----------------
+# ----------------------
 # resource group
-# ----------------
+# ----------------------
 
 print('')
 print("Checking for existing resource group '{}'".format(rg))
@@ -144,9 +144,9 @@ except json.decoder.JSONDecodeError:
     group = json.loads(groupj)
 
 
-# ----------------
+# ----------------------
 # key vault
-# ----------------
+# ----------------------
 
 print('')
 print('Creating key vault')
@@ -162,9 +162,9 @@ except json.decoder.JSONDecodeError:
     raise ChildProcessError('Failed to create new KeyVault: {}'.format(kvj))
 
 
-# ----------------
+# ----------------------
 # ssl & sign cert
-# ----------------
+# ----------------------
 
 print('')
 print('Adding SSL certificate to key vault')
@@ -198,9 +198,9 @@ except json.decoder.JSONDecodeError:
         'Failed to add signing certificate to KeyVault: {}'.format(kv_secret_signj))
 
 
-# ----------------
+# ----------------------
 # storage account
-# ----------------
+# ----------------------
 
 print('')
 print('Creating storage account')
@@ -215,9 +215,9 @@ except json.decoder.JSONDecodeError:
     raise ChildProcessError('Failed to create new storage account: {}'.format(storagej))
 
 
-# ----------------
+# ----------------------
 # storage container
-# ----------------
+# ----------------------
 
 print('')
 print("Creating container 'deploy' in storage account")
@@ -234,9 +234,9 @@ except json.decoder.JSONDecodeError:
         "Failed to create container 'deploy' container in storage account: {}".format(container_deployj))
 
 
-# ----------------
+# ----------------------
 # upload files
-# ----------------
+# ----------------------
 
 print('')
 print("Uploading file 'RDGatewayFedAuth.msi' to storage")
@@ -256,9 +256,9 @@ file_deploy = subprocess.run([
     stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True).stdout
 
 
-# ----------------
+# ----------------------
 # sas tokens
-# ----------------
+# ----------------------
 
 print('')
 print("Getting SAS token for file 'RDGatewayFedAuth.msi'")
@@ -285,19 +285,36 @@ file_deploy_sas = subprocess.run([
     stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True).stdout
 
 
-# ----------------
+# ----------------------
 # function app
-# ----------------
+# ----------------------
+
+print('')
+print('Creating function app plan')
+
+funcapp_planj = subprocess.run([
+    'az', 'functionapp', 'plan', 'create', '-g', rg, '--subscription', sub,
+    '-n', funcapp_name,
+    '-l', loc,
+    '--sku', 'EP1'],
+    stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True).stdout
+
+try:
+    funcapp_plan = json.loads(funcapp_planj)
+except json.decoder.JSONDecodeError:
+    raise ChildProcessError('Failed to create new function app plan: {}'.format(funcapp_planj))
 
 print('')
 print('Creating function app')
 
 funcappj = subprocess.run([
-    'az', 'functionapp', 'create', '-n', funcapp_name, '-g', rg, '--subscription', sub,
+    'az', 'functionapp', 'create', '-g', rg, '--subscription', sub,
+    '-n', funcapp_name,
+    '-p', funcapp_plan['id'],
     '--storage-account', storage_name,
-    '--consumption-plan-location', loc,
     '--assign-identity',
     '--scope', kv['id'],
+    '--runtime', 'dotnet',
     '--functions-version', '3'],
     stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True).stdout
 
@@ -306,12 +323,40 @@ try:
 except json.decoder.JSONDecodeError:
     raise ChildProcessError('Failed to create new function app: {}'.format(funcappj))
 
+
+# ----------------------
+# key vault policy
+# ----------------------
+
+print('')
+print('Creating key vault policy for function app')
+
+kv_policyj = subprocess.run([
+    'az', 'keyvault', 'set-policy', '-n', kv_name, '-g', rg, '--subscription', sub,
+    '--secret-permissions', 'get',
+    '--object-id', funcapp['identity']['principalId']],
+    stdout=subprocess.PIPE, universal_newlines=True).stdout
+
+try:
+    kv_policy = json.loads(kv_policyj)
+except json.decoder.JSONDecodeError:
+    raise ChildProcessError(
+        'Failed to create keyvault policy for function app: {}'.format(kv_policyj))
+
+
+# ----------------------
+# function app settings
+# ----------------------
+
 print('')
 print('Updating function app settings')
 
 funcapp_settingsj = subprocess.run([
     'az', 'functionapp', 'config', 'appsettings', 'set', '-n', funcapp_name, '-g', rg, '--subscription', sub,
-    '--settings', 'SignCertificateUrl={}'.format(kv_secret_sign['id']), 'TokenLifetime=00:01:00'],
+    '--settings',
+    'SignCertificate=@Microsoft.KeyVault(SecretUri={})'.format(kv_secret_sign['id']),
+    'SignCertificateUrl={}'.format(kv_secret_sign['id']),
+    'TokenLifetime=00:01:00'],
     stdout=subprocess.PIPE, universal_newlines=True).stdout
 
 try:
@@ -320,9 +365,9 @@ except json.decoder.JSONDecodeError:
     raise ChildProcessError('Failed to update function app settings: {}'.format(funcapp_settingsj))
 
 
-# ----------------
+# ----------------------
 # vm scale set
-# ----------------
+# ----------------------
 
 print('')
 print('Creating virtual machine scale set')
@@ -347,6 +392,8 @@ vmssj = subprocess.run([
     '--load-balancer', '{}-lb'.format(name),
     '--lb-nat-pool-name', '{}-nat'.format(name),
     '--public-ip-address', '{}-pip'.format(name),
+    '--vnet-name', '{}-vnet'.format(name),
+    '--subnet', 'default',
     '--secrets', vmss_secrets],
     stdout=subprocess.PIPE, universal_newlines=True).stdout
 
@@ -356,9 +403,9 @@ except json.decoder.JSONDecodeError:
     raise ChildProcessError('Failed to create new virtual machine scale set: {}'.format(vmssj))
 
 
-# ----------------
+# ----------------------
 #  vmss extension
-# ----------------
+# ----------------------
 
 print('')
 print("Creating extension 'CustomScriptExtension' for virtual machine scale set")
@@ -389,9 +436,9 @@ except json.decoder.JSONDecodeError:
         "Failed to create extension 'CustomScriptExtension' for virtual machine scale set")
 
 
-# ----------------
+# ----------------------
 # lb probes
-# ----------------
+# ----------------------
 
 print('')
 print("Creating probe 'HealthCheck' for load balancer")
@@ -450,9 +497,9 @@ except json.decoder.JSONDecodeError:
         'Failed to create new load balancer probe: {}'.format(lb_probe_3391j))
 
 
-# ----------------
+# ----------------------
 # lb rules
-# ----------------
+# ----------------------
 
 print('')
 print("Creating rule 'Balance443' for load balancer")
@@ -497,9 +544,9 @@ except json.decoder.JSONDecodeError:
     raise ChildProcessError(
         'Failed to create new load balancer rule: {}'.format(lb_rule_3391j))
 
-# ----------------
+# ----------------------
 # public ip
-# ----------------
+# ----------------------
 
 # print('')
 # print('Updating public IP address domain record')
@@ -514,6 +561,31 @@ except json.decoder.JSONDecodeError:
 #     ip = json.loads(ipj)
 # except json.decoder.JSONDecodeError:
 #     raise ChildProcessError('Failed to update public IP address domain record: {}'.format(ipj))
+
+
+# ----------------------
+# access restriction
+# ----------------------
+
+print('')
+print('Restricting access to function app to vnet')
+
+funcapp_accessj = subprocess.run([
+    'az', 'functionapp', 'config', 'access-restriction', 'add', '-g', rg, '--subscription', sub,
+    '-n', funcapp_name,
+    '--priority', '1',
+    '--rule-name', 'Allow VNet',
+    '--description', 'Restrict incoming traffic to VNet',
+    '--vnet-name', '{}-vnet'.format(name),
+    '--subnet', 'default'],
+    stdout=subprocess.PIPE, universal_newlines=True).stdout
+
+try:
+    funcapp_access = json.loads(funcapp_accessj)
+except json.decoder.JSONDecodeError:
+    raise ChildProcessError(
+        'Failed to add restriction rule to function app: {}'.format(funcapp_accessj))
+
 
 print('')
 print('Getting public IP address')
