@@ -115,8 +115,8 @@ print('')
 print('Getting Azure account information')
 
 accountj = subprocess.run([
-    'az', 'account', 'show'],
-    stdout=subprocess.PIPE, universal_newlines=True).stdout
+    'az', 'account', 'show'
+], stdout=subprocess.PIPE, universal_newlines=True).stdout
 try:
     account = json.loads(accountj)
 except json.decoder.JSONDecodeError:
@@ -131,8 +131,8 @@ print('')
 print("Checking for existing resource group '{}'".format(rg))
 
 groupj = subprocess.run([
-    'az', 'group', 'show', '-g', rg, '--subscription', sub],
-    stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True).stdout
+    'az', 'group', 'show', '-g', rg, '--subscription', sub
+], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True).stdout
 
 try:
     group = json.loads(groupj)
@@ -153,8 +153,8 @@ print('Creating key vault')
 
 kvj = subprocess.run([
     'az', 'keyvault', 'create', '-n', kv_name, '-g', rg, '--subscription', sub,
-    '--enabled-for-deployment'],
-    stdout=subprocess.PIPE, universal_newlines=True).stdout
+    '--enabled-for-deployment'
+], stdout=subprocess.PIPE, universal_newlines=True).stdout
 
 try:
     kv = json.loads(kvj)
@@ -173,8 +173,8 @@ kv_secret_sslj = subprocess.run([
     'az', 'keyvault', 'secret', 'set', '--subscription', sub,
     '--vault-name', kv_name,
     '-n', 'SSLCertificate',
-    '--value', ssl_secret],
-    stdout=subprocess.PIPE, universal_newlines=True).stdout
+    '--value', ssl_secret
+], stdout=subprocess.PIPE, universal_newlines=True).stdout
 
 try:
     kv_secret_ssl = json.loads(kv_secret_sslj)
@@ -188,8 +188,8 @@ kv_secret_signj = subprocess.run([
     'az', 'keyvault', 'secret', 'set', '--subscription', sub,
     '--vault-name', kv_name,
     '-n', 'SignCertificate',
-    '--value', sign_secret],
-    stdout=subprocess.PIPE, universal_newlines=True).stdout
+    '--value', sign_secret
+], stdout=subprocess.PIPE, universal_newlines=True).stdout
 
 try:
     kv_secret_sign = json.loads(kv_secret_signj)
@@ -206,8 +206,8 @@ print('')
 print('Creating storage account')
 
 storagej = subprocess.run([
-    'az', 'storage', 'account', 'create', '-n', storage_name, '-g', rg, '--subscription', sub],
-    stdout=subprocess.PIPE, universal_newlines=True).stdout
+    'az', 'storage', 'account', 'create', '-n', storage_name, '-g', rg, '--subscription', sub
+], stdout=subprocess.PIPE, universal_newlines=True).stdout
 
 try:
     storage = json.loads(storagej)
@@ -224,8 +224,8 @@ print("Creating container 'deploy' in storage account")
 
 container_deployj = subprocess.run([
     'az', 'storage', 'container', 'create', '--account-name', storage_name,
-    '-n', 'deploy'],
-    stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True).stdout
+    '-n', 'deploy'
+], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True).stdout
 
 try:
     container_deploy = json.loads(container_deployj)
@@ -244,16 +244,16 @@ print("Uploading file 'RDGatewayFedAuth.msi' to storage")
 file_auth = subprocess.run([
     'az', 'storage', 'blob', 'upload', '--account-name', storage_name, '-c', 'deploy',
     '-n', 'RDGatewayFedAuth.msi',
-    '-f' './deploy/RDGatewayFedAuth.msi'],
-    stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True).stdout
+    '-f' './deploy/RDGatewayFedAuth.msi'
+], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True).stdout
 
-print("Uploading file 'azuredeploy-gateway.ps1' to storage")
+print("Uploading file 'gateway.ps1' to storage")
 
 file_deploy = subprocess.run([
     'az', 'storage', 'blob', 'upload', '--account-name', storage_name, '-c', 'deploy',
-    '-n', 'azuredeploy-gateway.ps1',
-    '-f' './deploy/azuredeploy-gateway.ps1'],
-    stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True).stdout
+    '-n', 'gateway.ps1',
+    '-f' './deploy/gateway.ps1'
+], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True).stdout
 
 
 # ----------------------
@@ -271,18 +271,18 @@ file_auth_sas = subprocess.run([
     '-n', 'RDGatewayFedAuth.msi',
     '--permissions', 'r',
     '--expiry', sas_expiry,
-    '--full-uri'],
-    stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True).stdout
+    '--full-uri'
+], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True).stdout
 
-print("Getting SAS token for file 'azuredeploy-gateway.ps1'")
+print("Getting SAS token for file 'gateway.ps1'")
 
 file_deploy_sas = subprocess.run([
     'az', 'storage', 'blob', 'generate-sas', '--account-name', storage_name, '-c', 'deploy',
-    '-n', 'azuredeploy-gateway.ps1',
+    '-n', 'gateway.ps1',
     '--permissions', 'r',
     '--expiry', sas_expiry,
-    '--full-uri'],
-    stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True).stdout
+    '--full-uri'
+], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True).stdout
 
 
 # ----------------------
@@ -296,8 +296,8 @@ funcapp_planj = subprocess.run([
     'az', 'functionapp', 'plan', 'create', '-g', rg, '--subscription', sub,
     '-n', funcapp_name,
     '-l', loc,
-    '--sku', 'EP1'],
-    stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True).stdout
+    '--sku', 'EP1'
+], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True).stdout
 
 try:
     funcapp_plan = json.loads(funcapp_planj)
@@ -315,8 +315,8 @@ funcappj = subprocess.run([
     '--assign-identity',
     '--scope', kv['id'],
     '--runtime', 'dotnet',
-    '--functions-version', '3'],
-    stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True).stdout
+    '--functions-version', '3'
+], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True).stdout
 
 try:
     funcapp = json.loads(funcappj)
@@ -334,8 +334,8 @@ print('Creating key vault policy for function app')
 kv_policyj = subprocess.run([
     'az', 'keyvault', 'set-policy', '-n', kv_name, '-g', rg, '--subscription', sub,
     '--secret-permissions', 'get',
-    '--object-id', funcapp['identity']['principalId']],
-    stdout=subprocess.PIPE, universal_newlines=True).stdout
+    '--object-id', funcapp['identity']['principalId']
+], stdout=subprocess.PIPE, universal_newlines=True).stdout
 
 try:
     kv_policy = json.loads(kv_policyj)
@@ -355,9 +355,8 @@ funcapp_settingsj = subprocess.run([
     'az', 'functionapp', 'config', 'appsettings', 'set', '-n', funcapp_name, '-g', rg, '--subscription', sub,
     '--settings',
     'SignCertificate=@Microsoft.KeyVault(SecretUri={})'.format(kv_secret_sign['id']),
-    'SignCertificateUrl={}'.format(kv_secret_sign['id']),
-    'TokenLifetime=00:01:00'],
-    stdout=subprocess.PIPE, universal_newlines=True).stdout
+    'TokenLifetime=00:01:00'
+], stdout=subprocess.PIPE, universal_newlines=True).stdout
 
 try:
     funcapp_settings = json.loads(funcapp_settingsj)
@@ -394,8 +393,8 @@ vmssj = subprocess.run([
     '--public-ip-address', '{}-pip'.format(name),
     '--vnet-name', '{}-vnet'.format(name),
     '--subnet', 'default',
-    '--secrets', vmss_secrets],
-    stdout=subprocess.PIPE, universal_newlines=True).stdout
+    '--secrets', vmss_secrets
+], stdout=subprocess.PIPE, universal_newlines=True).stdout
 
 try:
     vmss = json.loads(vmssj)
@@ -410,13 +409,13 @@ except json.decoder.JSONDecodeError:
 print('')
 print("Creating extension 'CustomScriptExtension' for virtual machine scale set")
 
-vmss_ext_command = 'powershell.exe -ExecutionPolicy Unrestricted -Command & {{ $script = gci -Filter azuredeploy-gateway.ps1 -Recurse | sort -Descending -Property LastWriteTime | select -First 1 -ExpandProperty FullName; . $script -SslCertificateThumbprint {} -SignCertificateThumbprint {} -TokenFactoryHostname {} }}'.format(
+vmss_ext_command = 'powershell.exe -ExecutionPolicy Unrestricted -Command \"& {{ $script = gci -Filter gateway.ps1 -Recurse | sort -Descending -Property LastWriteTime | select -First 1 -ExpandProperty FullName; . $script -SslCertificateThumbprint {} -SignCertificateThumbprint {} -TokenFactoryHostname {} }} \"'.format(
     ssl_cert_thumbprint, sign_cert_thumbprint, funcapp['defaultHostName'])
 
 vmss_ext_settings = json.dumps({
-    'fileUrls': [
-        file_auth_sas,
-        file_deploy_sas
+    'fileUris': [
+        file_auth_sas.replace('"', '').strip(),
+        file_deploy_sas.replace('"', '').strip()
     ],
     'commandToExecute': vmss_ext_command
 })
@@ -426,8 +425,8 @@ vmss_extj = subprocess.run([
     '-n', 'CustomScriptExtension',
     '--publisher', 'Microsoft.Compute',
     '--vmss-name', name,
-    '--settings', vmss_ext_settings],
-    stdout=subprocess.PIPE, universal_newlines=True).stdout
+    '--settings', vmss_ext_settings
+], stdout=subprocess.PIPE, universal_newlines=True).stdout
 
 try:
     vmss_ext = json.loads(vmss_extj)
@@ -451,8 +450,8 @@ lb_probe_health_checkj = subprocess.run([
     '--protocol', 'http',
     '--interval', '300',
     '--path', '/api/health',
-    '--threshold', '2'],
-    stdout=subprocess.PIPE, universal_newlines=True).stdout
+    '--threshold', '2'
+], stdout=subprocess.PIPE, universal_newlines=True).stdout
 
 try:
     lb_probe_health_check = json.loads(lb_probe_health_checkj)
@@ -469,8 +468,8 @@ lb_probe_443j = subprocess.run([
     '--port', '443',
     '--protocol', 'tcp',
     '--interval', '5',
-    '--threshold', '2'],
-    stdout=subprocess.PIPE, universal_newlines=True).stdout
+    '--threshold', '2'
+], stdout=subprocess.PIPE, universal_newlines=True).stdout
 
 try:
     lb_probe_443 = json.loads(lb_probe_443j)
@@ -487,8 +486,8 @@ lb_probe_3391j = subprocess.run([
     '--port', '3391',
     '--protocol', 'tcp',
     '--interval', '5',
-    '--threshold', '2'],
-    stdout=subprocess.PIPE, universal_newlines=True).stdout
+    '--threshold', '2'
+], stdout=subprocess.PIPE, universal_newlines=True).stdout
 
 try:
     lb_probe_3391 = json.loads(lb_probe_3391j)
@@ -535,8 +534,8 @@ lb_rule_3391j = subprocess.run([
     '--floating-ip', 'false',
     '--idle-timeout', '5',
     '--load-distribution', 'SourceIPProtocol',
-    '--probe-name', 'Probe3391'],
-    stdout=subprocess.PIPE, universal_newlines=True).stdout
+    '--probe-name', 'Probe3391'
+], stdout=subprocess.PIPE, universal_newlines=True).stdout
 
 try:
     lb_rule_3391 = json.loads(lb_rule_3391j)
@@ -567,24 +566,76 @@ except json.decoder.JSONDecodeError:
 # access restriction
 # ----------------------
 
+# print('')
+# print('Restricting access to function app to vnet')
+
+# funcapp_accessj = subprocess.run([
+#     'az', 'functionapp', 'config', 'access-restriction', 'add', '-g', rg, '--subscription', sub,
+#     '-n', funcapp_name,
+#     '--priority', '1',
+#     '--rule-name', 'Allow VNet',
+#     '--description', 'Restrict incoming traffic to VNet',
+#     '--vnet-name', '{}-vnet'.format(name),
+#     '--subnet', 'default'],
+#     stdout=subprocess.PIPE, universal_newlines=True).stdout
+
+# try:
+#     funcapp_access = json.loads(funcapp_accessj)
+# except json.decoder.JSONDecodeError:
+#     raise ChildProcessError(
+#         'Failed to add restriction rule to function app: {}'.format(funcapp_accessj))
+
 print('')
-print('Restricting access to function app to vnet')
+print("Upgrading all instances in virtual machine scale set")
 
-funcapp_accessj = subprocess.run([
-    'az', 'functionapp', 'config', 'access-restriction', 'add', '-g', rg, '--subscription', sub,
-    '-n', funcapp_name,
-    '--priority', '1',
-    '--rule-name', 'Allow VNet',
-    '--description', 'Restrict incoming traffic to VNet',
+vmss_upgradej = subprocess.run([
+    'az', 'vmss', 'update-instances', '-g', rg, '--subscription', sub,
+    '-n', name,
+    '--instance-ids', '*'
+], stdout=subprocess.PIPE, universal_newlines=True).stdout
+
+
+print('')
+print('Configuring private endpoint for token api')
+
+private_endpointj = subprocess.run([
+    'az', 'network', 'vnet', 'subnet', 'update', '-g', rg, '--subscription', sub,
+    '-n', 'default',
     '--vnet-name', '{}-vnet'.format(name),
-    '--subnet', 'default'],
-    stdout=subprocess.PIPE, universal_newlines=True).stdout
+    '--disable-private-endpoint-network-policies', 'true'
+], stdout=subprocess.PIPE, universal_newlines=True).stdout
 
-try:
-    funcapp_access = json.loads(funcapp_accessj)
-except json.decoder.JSONDecodeError:
-    raise ChildProcessError(
-        'Failed to add restriction rule to function app: {}'.format(funcapp_accessj))
+private_endpointj = subprocess.run([
+    'az', 'network', 'private-endpoint', 'create', '-g', rg, '--subscription', sub,
+    '-l', loc,
+    '-n', '{}-pe'.format(name),
+    '--connection-name', '{}-pe'.format(name),
+    '--private-connection-resource-id', funcapp['id'],
+    '--vnet-name', '{}-vnet'.format(name),
+    '--subnet', 'default',
+    '--group-id', 'sites'
+], stdout=subprocess.PIPE, universal_newlines=True).stdout
+
+private_endpointj = subprocess.run([
+    'az', 'network', 'private-dns', 'zone', 'create', '-g', rg, '--subscription', sub,
+    '-n', 'privatelink.azurewebsites.net'
+], stdout=subprocess.PIPE, universal_newlines=True).stdout
+
+private_endpointj = subprocess.run([
+    'az', 'network', 'private-dns', 'link', 'vnet', 'create', '-g', rg, '--subscription', sub,
+    '--zone-name', 'privatelink.azurewebsites.net',
+    '--name', '{}-dnslink'.format(name),
+    '--virtual-network', '{}-vnet'.format(name),
+    '--registration-enabled', 'false'
+], stdout=subprocess.PIPE, universal_newlines=True).stdout
+
+private_endpointj = subprocess.run([
+    'az', 'network', 'private-endpoint', 'dns-zone-group', 'create', '-g', rg, '--subscription', sub,
+    '-n', '{}-dnsgroup'.format(name),
+    '--endpoint-name', '{}-pe'.format(name),
+    '--private-dns-zone', 'privatelink.azurewebsites.net',
+    '--zone-name', '{}-dnszone'.format(name)
+], stdout=subprocess.PIPE, universal_newlines=True).stdout
 
 
 print('')
@@ -592,8 +643,8 @@ print('Getting public IP address')
 
 ipj = subprocess.run([
     'az', 'network', 'public-ip', 'show', '-g', rg, '--subscription', sub,
-    '-n', '{}-pip'.format(name)],
-    stdout=subprocess.PIPE, universal_newlines=True).stdout
+    '-n', '{}-pip'.format(name)
+], stdout=subprocess.PIPE, universal_newlines=True).stdout
 
 try:
     ip = json.loads(ipj)
