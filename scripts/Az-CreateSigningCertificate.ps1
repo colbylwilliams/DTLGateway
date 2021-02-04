@@ -29,7 +29,12 @@ else {
     # private key is added as a secret that can be retrieved in the Resource Manager template
     Add-AzKeyVaultCertificate -VaultName $vaultName -Name SignCertificate -CertificatePolicy $policy -Verbose
 
+    Start-Sleep -Seconds 20
+
     $cert = Get-AzKeyVaultCertificate -VaultName $vaultName -Name SignCertificate
+
+    Start-Sleep -Seconds 20
+
     $secret = Get-AzKeyVaultSecret -VaultName $vaultName -Name $cert.Name -AsPlainText
     $secretByte = [Convert]::FromBase64String($secret)
     $x509Cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($secretByte, "", "Exportable,PersistKeySet")
