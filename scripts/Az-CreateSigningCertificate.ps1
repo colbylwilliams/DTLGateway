@@ -29,6 +29,8 @@ else {
     # private key is added as a secret that can be retrieved in the Resource Manager template
     Add-AzKeyVaultCertificate -VaultName $vaultName -Name SignCertificate -CertificatePolicy $policy -Verbose
 
+    $password = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 20 | % { [char] $_ })
+
     Start-Sleep -Seconds 20
 
     $cert = Get-AzKeyVaultCertificate -VaultName $vaultName -Name SignCertificate
@@ -60,7 +62,7 @@ else {
     } while ($operation.Status -ne 'completed')
 
     $DeploymentScriptOutputs['thumbprint'] = $cert.Thumbprint
-    $DeploymentScriptOutputs['password'] = $secret.SecretValueText
+    $DeploymentScriptOutputs['password'] = $password
     $DeploymentScriptOutputs['base64'] = $pfxBase64
 
     $cert | Out-String
