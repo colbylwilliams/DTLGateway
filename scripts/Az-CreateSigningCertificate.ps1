@@ -5,11 +5,11 @@ param(
 $ErrorActionPreference = 'Stop'
 $DeploymentScriptOutputs = @{}
 
-$existingCert = Get-AzKeyVaultCertificate -VaultName $vaultName -Name SignCertificate
+$existingCert = Get-AzKeyVaultCertificate -VaultName $vaultName -Name SignCert
 
 if ($existingCert -and $existingCert.Certificate.Subject -eq "CN=Azure DTL Gateway") {
 
-    Write-Host 'Certificate SignCertificate in vault $vaultName is already present.'
+    Write-Host 'Certificate SignCert in vault $vaultName is already present.'
 
     # $existingSecret = Get-AzKeyVaultSecret -VaultName $vaultName -Name $existingCert.Name -AsPlainText
 
@@ -27,15 +27,33 @@ else {
         -Verbose
 
     # private key is added as a secret that can be retrieved in the Resource Manager template
-    Add-AzKeyVaultCertificate -VaultName $vaultName -Name SignCertificate -CertificatePolicy $policy -Verbose
+    Add-AzKeyVaultCertificate -VaultName $vaultName -Name SignCert -CertificatePolicy $policy -Verbose
 
     $password = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 20 | % { [char] $_ })
 
-    Start-Sleep -Seconds 20
+    # Start-Sleep -Seconds 20
 
-    $cert = Get-AzKeyVaultCertificate -VaultName $vaultName -Name SignCertificate
+    $cert = Get-AzKeyVaultCertificate -VaultName $vaultName -Name SignCert
 
-    Start-Sleep -Seconds 20
+    # Start-Sleep -Seconds 20
+
+
+    # it takes a few seconds for KeyVault to finish
+    $tries = 0
+    do {
+        Write-Host 'Waiting for certificate creation completion...'
+        Start-Sleep -Seconds 10
+        $operation = Get-AzKeyVaultCertificateOperation -VaultName $vaultName -Name SignCert
+        $tries++
+
+        if ($operation.Status -eq 'failed') {
+            throw 'Creating certificate SignCert in vault $vaultName failed with error $($operation.ErrorMessage)'
+        }
+
+        if ($tries -gt 120) {
+            throw 'Timed out waiting for creation of certificate SignCert in vault $vaultName'
+        }
+    } while ($operation.Status -ne 'completed')
 
     $secret = Get-AzKeyVaultSecret -VaultName $vaultName -Name $cert.Name -AsPlainText
     $secretByte = [Convert]::FromBase64String($secret)
@@ -43,23 +61,6 @@ else {
     $type = [System.Security.Cryptography.X509Certificates.X509ContentType]::Pfx
     $pfxFileByte = $x509Cert.Export($type, $password)
     $pfxBase64 = [System.Convert]::ToBase64String($pfxFileByte)
-
-    # it takes a few seconds for KeyVault to finish
-    $tries = 0
-    do {
-        Write-Host 'Waiting for certificate creation completion...'
-        Start-Sleep -Seconds 10
-        $operation = Get-AzKeyVaultCertificateOperation -VaultName $vaultName -Name SignCertificate
-        $tries++
-
-        if ($operation.Status -eq 'failed') {
-            throw 'Creating certificate SignCertificate in vault $vaultName failed with error $($operation.ErrorMessage)'
-        }
-
-        if ($tries -gt 120) {
-            throw 'Timed out waiting for creation of certificate SignCertificate in vault $vaultName'
-        }
-    } while ($operation.Status -ne 'completed')
 
     $DeploymentScriptOutputs['thumbprint'] = $cert.Thumbprint
     $DeploymentScriptOutputs['password'] = $password
