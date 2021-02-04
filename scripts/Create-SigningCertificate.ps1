@@ -93,5 +93,5 @@ try {
 finally {
 
     # clean up - remove not needed files
-    Remove-Item -Path $cerFilePath -Force -ErrorAction SilentlyContinue | Out-Null
+    Remove-Item -Path $pfxFilePath -Force -ErrorAction SilentlyContinue | Out-Null
 }
