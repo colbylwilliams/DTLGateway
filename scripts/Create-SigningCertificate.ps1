@@ -14,37 +14,52 @@ Creates signing certificate necessary to work with token authenticated based Rem
 
 Push-Location -Path $PSScriptRoot
 
-$expiresOn = (Get-Date).AddYears(1).ToString("MM/dd/yyyy")
-$cerFileName = "$([Guid]::NewGuid().ToString()).cer"
+# $expiresOn = (Get-Date).AddYears(1).ToString("MM/dd/yyyy")
+# $cerFileName = "$([Guid]::NewGuid().ToString()).cer"
 
 # makecert arguments to create a signing cert
 # don't mess them up - RDG is really picky on this
-$makecertArguments = @(
-    "-n `"CN=Azure DTL Gateway`"",
-    "-r",
-    "-pe",
-    "-a sha256",
-    "-e $expiresOn",
-    "-len 2048",
-    "-sky signature",
-    "-eku 1.3.6.1.5.5.7.3.2",
-    "-sr CurrentUser",
-    "-ss My",
-    "-sy 24",
-    "$cerFileName"
-)
+# $makecertArguments = @(
+#     "-n `"CN=Azure DTL Gateway`"",
+#     "-r",
+#     "-pe",
+#     "-a sha256",
+#     "-e $expiresOn",
+#     "-len 2048",
+#     "-sky signature",
+#     "-eku 1.3.6.1.5.5.7.3.2",
+#     "-sr CurrentUser",
+#     "-ss My",
+#     "-sy 24",
+#     "$cerFileName"
+# )
 
-# use makecert to create a signing certificate
-Start-Process "makecert.exe" -ArgumentList $makecertArguments -Verbose -Wait -NoNewWindow
+# # use makecert to create a signing certificate
+# Start-Process "makecert.exe" -ArgumentList $makecertArguments -Verbose -Wait -NoNewWindow
 
-$cerFilePath = Join-Path $PSScriptRoot $cerFileName
-$pfxFilePath = [System.IO.Path]::ChangeExtension($cerFilePath, ".pfx")
+# $cerFilePath = Join-Path $PSScriptRoot $cerFileName
+# $pfxFilePath = [System.IO.Path]::ChangeExtension($cerFilePath, ".pfx")
+
+$expiresOn = (Get-Date).AddYears(1)
+$pfxFileName = "$([Guid]::NewGuid().ToString()).pfx"
+$pfxFilePath = Join-Path $PSScriptRoot $pfxFileName
 
 try {
 
+    $cer = New-SelfSignedCertificate -Subject "CN=Azure DTL Gateway" `
+        -Type Custom `
+        -KeyExportPolicy Exportable `
+        -HashAlgorithm sha256 `
+        -NotAfter $expiresOn `
+        -KeyLength 2048 `
+        -KeySpec Signature `
+        -KeyUsage DigitalSignature `
+        -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.2") `
+        -CertStoreLocation "Cert:\CurrentUser\My"
+
     # import the cer file to get the thumbprint for export
-    $cer = New-Object System.Security.Cryptography.X509Certificates.X509Certificate;
-    $cer.Import($cerFilePath);
+    # $cer = New-Object System.Security.Cryptography.X509Certificates.X509Certificate;
+    # $cer.Import($cerFilePath);
 
     # create a random password for the pfx export
     $pwd = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 20 | % { [char] $_ })
