@@ -40,6 +40,8 @@ Push-Location -Path $PSScriptRoot
 # $cerFilePath = Join-Path $PSScriptRoot $cerFileName
 # $pfxFilePath = [System.IO.Path]::ChangeExtension($cerFilePath, ".pfx")
 
+Import-Module -Name PKIClient
+
 $expiresOn = (Get-Date).AddYears(1)
 $pfxFileName = "$([Guid]::NewGuid().ToString()).pfx"
 $pfxFilePath = Join-Path $PSScriptRoot $pfxFileName
