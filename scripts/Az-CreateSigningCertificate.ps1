@@ -61,10 +61,6 @@ else {
     $pfxFileByte = $x509Cert.Export($type, $password)
     $pfxBase64 = [System.Convert]::ToBase64String($pfxFileByte)
 
-
-    $DeploymentScriptOutputs['cert'] = $cert
-    $DeploymentScriptOutputs['x509Cert'] = $x509Cert
-
     $DeploymentScriptOutputs['thumbprint'] = $cert.Thumbprint
     $DeploymentScriptOutputs['password'] = $password
     $DeploymentScriptOutputs['base64'] = $pfxBase64
