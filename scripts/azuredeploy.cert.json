@@ -8,51 +8,34 @@
         }
     },
     "variables": {
-        "scriptUri": "https://raw.githubusercontent.com/colbylwilliams/DTLGateway/main/scripts/Az-CreateSigningCertificate.ps1",
+        "signCertScriptUri": "https://raw.githubusercontent.com/colbylwilliams/DTLGateway/main/scripts/Az-CreateSigningCertificate.ps1",
         "keyVaultName": "[concat('a', uniqueString(resourceGroup().id), '-kv')]",
         "keyVaultSecretSignCertificate": "SignCertificate",
-        "identityName": "DeployScriptTester"
-        // "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
-        // "roleDefinitionName": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName')), variables('roleDefinitionId'), resourceGroup().id)]"
+        "deploymentScriptRunner": "DeploymentScriptRunner"
     },
     "resources": [
         {
-            "name": "[variables('identityName')]",
+            "name": "[variables('deploymentScriptRunner')]",
             "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
             "apiVersion": "2018-11-30",
-            "tags": {},
             "location": "[resourceGroup().location]"
         },
-        // {
-        //     "type": "Microsoft.Authorization/roleAssignments",
-        //     "apiVersion": "2020-04-01-preview",
-        //     "name": "[variables('roleDefinitionName')]",
-        //     "dependsOn": [
-        //         "[variables('identityName')]"
-        //     ],
-        //     "properties": {
-        //         "roleDefinitionId": "[variables('roleDefinitionId')]",
-        //         "principalId": "[reference(variables('identityName')).principalId]",
-        //         "scope": "[resourceGroup().id]",
-        //         "principalType": "ServicePrincipal"
-        //     }
-        // },
         {
             "type": "Microsoft.Resources/deploymentScripts",
             "apiVersion": "2020-10-01",
-            "name": "signCertCreateScript",
+            "name": "createSignCertificateScript",
             "location": "[resourceGroup().location]",
             "kind": "AzurePowerShell",
             "identity": {
                 "type": "UserAssigned",
                 "userAssignedIdentities": {
-                    "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName'))]": { /*ttk bug*/
+                    "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('deploymentScriptRunner'))]": { /*ttk bug*/
                     }
                 }
             },
             "dependsOn": [
                 // "[variables('roleDefinitionName')]",
-                "[variables('identityName')]",
+                "[variables('deploymentScriptRunner')]",
                 "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
             ],
             "properties": {
@@ -60,7 +43,7 @@
                 "azPowerShellVersion": "5.4",
                 "timeout": "PT1H",
                 "arguments": "[format(' -vaultName {0}', variables('keyVaultName'))]",
-                "primaryScriptUri": "[variables('scriptUri')]",
+                "primaryScriptUri": "[variables('signCertScriptUri')]",
                 "cleanupPreference": "Always",
                 "retentionInterval": "P1D"
             }
@@ -71,7 +54,7 @@
             "apiVersion": "2016-10-01",
             "location": "[resourceGroup().location]",
             "dependsOn": [
-                "[variables('identityName')]"
+                "[variables('deploymentScriptRunner')]"
                 // "[variables('roleDefinitionName')]"
             ],
             "properties": {
@@ -85,8 +68,8 @@
                 },
                 "accessPolicies": [
                     {
-                        "tenantId": "[reference(variables('identityName'), '2018-11-30').tenantId]",
-                        "objectId": "[reference(variables('identityName'), '2018-11-30').principalId]",
+                        "tenantId": "[reference(variables('deploymentScriptRunner'), '2018-11-30').tenantId]",
+                        "objectId": "[reference(variables('deploymentScriptRunner'), '2018-11-30').principalId]",
                         "permissions": {
                             "keys": [
                                 "get",
@@ -116,10 +99,10 @@
             "type": "Microsoft.KeyVault/vaults/secrets",
             "apiVersion": "2016-10-01",
             "dependsOn": [
-                "signCertCreateScript"
+                "createSignCertificateScript"
             ],
             "properties": {
-                "value": "[base64(concat('{ \"data\":\"', reference('signCertCreateScript').outputs.base64, '\", \"dataType\":\"pfx\", \"password\":\"', reference('signCertCreateScript').outputs.password, '\" }'))]"
+                "value": "[base64(concat('{ \"data\":\"', reference('createSignCertificateScript').outputs.base64, '\", \"dataType\":\"pfx\", \"password\":\"', reference('createSignCertificateScript').outputs.password, '\" }'))]"
             }
         }
     ]

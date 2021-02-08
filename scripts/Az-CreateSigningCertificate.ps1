@@ -29,15 +29,6 @@ else {
     # private key is added as a secret that can be retrieved in the Resource Manager template
     Add-AzKeyVaultCertificate -VaultName $vaultName -Name SignCert -CertificatePolicy $policy -Verbose
 
-    $password = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 20 | % { [char] $_ })
-
-    # Start-Sleep -Seconds 20
-
-    $cert = Get-AzKeyVaultCertificate -VaultName $vaultName -Name SignCert
-
-    # Start-Sleep -Seconds 20
-
-
     # it takes a few seconds for KeyVault to finish
     $tries = 0
     do {
@@ -55,12 +46,24 @@ else {
         }
     } while ($operation.Status -ne 'completed')
 
+    $password = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 20 | % { [char] $_ })
+
+    # Start-Sleep -Seconds 20
+
+    $cert = Get-AzKeyVaultCertificate -VaultName $vaultName -Name SignCert
+
+    # Start-Sleep -Seconds 20
+
     $secret = Get-AzKeyVaultSecret -VaultName $vaultName -Name $cert.Name -AsPlainText
     $secretByte = [Convert]::FromBase64String($secret)
     $x509Cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($secretByte, "", "Exportable,PersistKeySet")
     $type = [System.Security.Cryptography.X509Certificates.X509ContentType]::Pfx
     $pfxFileByte = $x509Cert.Export($type, $password)
     $pfxBase64 = [System.Convert]::ToBase64String($pfxFileByte)
+
+
+    $DeploymentScriptOutputs['cert'] = $cert
+    $DeploymentScriptOutputs['x509Cert'] = $x509Cert
 
     $DeploymentScriptOutputs['thumbprint'] = $cert.Thumbprint
     $DeploymentScriptOutputs['password'] = $password

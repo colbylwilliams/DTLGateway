@@ -30,11 +30,11 @@ parser.add_argument('--ssl-cert-thumbprint', required=True,
 parser.add_argument('--ssl-cert-password', required=True,
                     help='The SSL certificate password for installation.')
 
-parser.add_argument('--sign-cert', required=True,
+parser.add_argument('--sign-cert',
                     help='Path to the signing certificate .pfx or .p12 file.')
-parser.add_argument('--sign-cert-thumbprint', required=True,
+parser.add_argument('--sign-cert-thumbprint',
                     help='The signing certificate thumbprint for identification in the local certificate store.')
-parser.add_argument('--sign-cert-password', required=True,
+parser.add_argument('--sign-cert-password',
                     help='The signing certificate password for installation.')
 
 
@@ -50,32 +50,19 @@ password = args.password
 
 
 # ----------------------
-# ssl & sign certs
+# ssl cert
 # ----------------------
 
 ssl_cert = Path(args.ssl_cert)
 ssl_cert_thumbprint = args.ssl_cert_thumbprint
 ssl_cert_password = args.ssl_cert_password
 
-sign_cert = Path(args.sign_cert)
-sign_cert_thumbprint = args.sign_cert_thumbprint
-sign_cert_password = args.sign_cert_password
-
 if not ssl_cert.is_file():
     raise FileNotFoundError(ssl_cert)
-
-if not sign_cert.is_file():
-    raise FileNotFoundError(sign_cert)
-
 
 with open(ssl_cert, 'rb') as f:
     ssl_cert_content = f.read()
     ssl_cert_base64 = str(base64.b64encode(ssl_cert_content), 'utf-8')
-
-with open(sign_cert, 'rb') as f:
-    sign_cert_content = f.read()
-    sign_cert_base64 = str(base64.b64encode(sign_cert_content), 'utf-8')
-
 
 ssl_secret = base64.b64encode(json.dumps({
     'data': ssl_cert_base64,
@@ -83,11 +70,31 @@ ssl_secret = base64.b64encode(json.dumps({
     'password': ssl_cert_password
 }, ensure_ascii=True).encode('ascii'))
 
-sign_secret = base64.b64encode(json.dumps({
-    'data': sign_cert_base64,
-    'dataType': 'pfx',
-    'password': sign_cert_password
-}, ensure_ascii=True).encode('ascii'))
+
+# ----------------------
+# ssl & sign certs
+# ----------------------
+
+sign_cert_provided = args.sign_cert and args.sign_cert_thumbprint and args.sign_cert_password
+
+if sign_cert_provided:
+
+    sign_cert = Path(args.sign_cert)
+    sign_cert_thumbprint = args.sign_cert_thumbprint
+    sign_cert_password = args.sign_cert_password
+
+    if not sign_cert.is_file():
+        raise FileNotFoundError(sign_cert)
+
+    with open(sign_cert, 'rb') as f:
+        sign_cert_content = f.read()
+        sign_cert_base64 = str(base64.b64encode(sign_cert_content), 'utf-8')
+
+    sign_secret = base64.b64encode(json.dumps({
+        'data': sign_cert_base64,
+        'dataType': 'pfx',
+        'password': sign_cert_password
+    }, ensure_ascii=True).encode('ascii'))
 
 
 # ----------------------
@@ -131,18 +138,24 @@ except json.decoder.JSONDecodeError:
 # deploy arm
 # ----------------------
 
-arm_params = json.dumps({
+arm_params_obj = {
     'adminUsername': {'value': username},
     'adminPassword': {'value': password},
     # 'tokenLifetime': { 'value': '' },
     'sslCertificate': {'value': ssl_cert_base64},
     'sslCertificatePassword': {'value': ssl_cert_password},
-    'sslCertificateThumbprint': {'value': ssl_cert_thumbprint},
-    'signCertificate': {'value': sign_cert_base64},
-    'signCertificatePassword': {'value': sign_cert_password},
-    'signCertificateThumbprint': {'value': sign_cert_thumbprint}
-})
+    'sslCertificateThumbprint': {'value': ssl_cert_thumbprint}
+}
 
+if sign_cert_provided:
+    arm_params_obj['signCertificate'] = {'value': sign_cert_base64}
+    arm_params_obj['signCertificatePassword'] = {'value': sign_cert_password}
+    arm_params_obj['signCertificateThumbprint'] = {'value': sign_cert_thumbprint}
+
+
+arm_params = json.dumps(arm_params_obj)
+
+# print(arm_params)
 
 print('\nDeploying arm template')
 
