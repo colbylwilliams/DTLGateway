@@ -73,22 +73,22 @@
     "vmssName": "[concat(variables('resourcePrefix'),'-vmss')]",
     "storageAccountName": "[replace(variables('resourcePrefix'), '-', '')]",
     "artifactsContainerName": "artifacts",
+    "keyVaultName": "[concat(variables('resourcePrefix'),'-kv')]",
     "hostingPlanName": "[concat(variables('resourcePrefix'),'-hp')]",
     "functionAppName": "[concat(variables('resourcePrefix'),'-fa')]",
     "appInsightsName": "[concat(variables('resourcePrefix'),'-ai')]",
-    "keyVaultName": "[concat(variables('resourcePrefix'),'-kv')]",
     "keyVaultSecretSSLCertificate": "SSLCertificate",
     "keyVaultSecretSignCertificate": "SignCertificate",
     "vnetName": "[concat(variables('resourcePrefix'),'-vnet')]",
     "snetGatewayName": "RDGateway",
-    "publicIPAddressName": "[concat(variables('resourcePrefix'),'-pip')]",
     "loadBalancerName": "[concat(variables('resourcePrefix'),'-lb')]",
-    "loadBalancerFrontEndName": "gatewayFrontEnd",
+    "publicIPAddressName": "[concat(variables('resourcePrefix'),'-pip')]",
     "loadBalancerBackEndName": "gatewayBackEnd",
     "loadBalancerNatPoolName": "gatewayNatPool",
+    "loadBalancerFrontEndName": "gatewayFrontEnd",
+    "githubBranch": "main",
     "githubRepoUrl": "https://github.com/colbylwilliams/DTLGateway",
     "githubRepoPath": "src/DTLGateway",
-    "githubBranch": "main",
     "createSignCertificate": "[or(empty(parameters('signCertificate')), empty(parameters('signCertificatePassword')), empty(parameters('signCertificateThumbprint')))]",
     "createSignCertificateIdentity": "createSignCertificateIdentity",
     "createSignCertificateScriptUri": "https://raw.githubusercontent.com/colbylwilliams/DTLGateway/main/scripts/Az-CreateSigningCertificate.ps1"
@@ -367,8 +367,8 @@
       },
       "properties": {
         "publicIPAllocationMethod": "Static",
-        "publicIPAddressVersion": "IPv4",
         // "publicIPAllocationMethod": "Dynamic",
+        "publicIPAddressVersion": "IPv4",
         "idleTimeoutInMinutes": 4,
         "dnsSettings": {
           "domainNameLabel": "[toLower(variables('resourcePrefix'))]"
@@ -765,7 +765,6 @@
           "subnet": {
             "value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('snetGatewayName'))]"
           }
-
         },
         "template": {
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
@@ -828,7 +827,6 @@
               "location": "global",
               "dependsOn": [
                 "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsZoneName'))]"
-                // "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
               ],
               "properties": {
                 "registrationEnabled": false,
