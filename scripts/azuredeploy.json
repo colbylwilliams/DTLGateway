@@ -2,12 +2,6 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    // "name": {
-    //   "type": "string",
-    //   "metadata": {
-    //     "description": "Gateway resource name."
-    //   }
-    // },
     "adminUsername": {
       "type": "string",
       "metadata": {
@@ -95,9 +89,9 @@
     "githubRepoUrl": "https://github.com/colbylwilliams/DTLGateway",
     "githubRepoPath": "src/DTLGateway",
     "githubBranch": "main",
+    "createSignCertificate": "[or(empty(parameters('signCertificate')), empty(parameters('signCertificatePassword')), empty(parameters('signCertificateThumbprint')))]",
     "createSignCertificateIdentity": "createSignCertificateIdentity",
-    "signCertScriptUri": "https://raw.githubusercontent.com/colbylwilliams/DTLGateway/main/scripts/Az-CreateSigningCertificate.ps1",
-    "createSignCertificate": "[or(empty(parameters('signCertificate')), empty(parameters('signCertificatePassword')), empty(parameters('signCertificateThumbprint')))]"
+    "createSignCertificateScriptUri": "https://raw.githubusercontent.com/colbylwilliams/DTLGateway/main/scripts/Az-CreateSigningCertificate.ps1"
   },
   "resources": [
     {
@@ -323,7 +317,7 @@
       },
       "dependsOn": [
         "[variables('createSignCertificateIdentity')]",
-        "scriptIdentityAccessPolicyDeployment",
+        "createSignCertificateIdentityAccessPolicyDeployment",
         "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
       ],
       "properties": {
@@ -331,9 +325,9 @@
         "azPowerShellVersion": "5.4",
         "timeout": "PT1H",
         "arguments": "[format(' -vaultName {0}', variables('keyVaultName'))]",
-        "primaryScriptUri": "[variables('signCertScriptUri')]",
         "cleanupPreference": "Always",
-        "retentionInterval": "P1D"
+        "retentionInterval": "P1D",
+        "primaryScriptUri": "[variables('createSignCertificateScriptUri')]"
       }
     },
     {
@@ -659,7 +653,7 @@
     },
     {
       "condition": "[variables('createSignCertificate')]",
-      "name": "scriptIdentityAccessPolicyDeployment",
+      "name": "createSignCertificateIdentityAccessPolicyDeployment",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2019-10-01",
       "dependsOn": [
@@ -752,7 +746,6 @@
         "[concat('Microsoft.Network/publicIPAddresses/', variables('publicIPAddressName'))]",
         "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]",
         "[resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName'))]"
-        // "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('snetGatewayName'))]"
       ],
       "properties": {
         "mode": "Incremental",
@@ -802,10 +795,6 @@
               "apiVersion": "2020-05-01",
               "name": "[variables('privateEndpointName')]",
               "location": "eastus",
-              // "dependsOn": [
-              //   "[resourceId('Microsoft.Web/sites', parameters('siteName'))]",
-              //   "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]"
-              // ],
               "properties": {
                 "subnet": {
                   "id": "[parameters('subnet')]"
