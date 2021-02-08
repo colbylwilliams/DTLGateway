@@ -95,7 +95,7 @@
     "githubRepoUrl": "https://github.com/colbylwilliams/DTLGateway",
     "githubRepoPath": "src/DTLGateway",
     "githubBranch": "main",
-    "deploymentScriptIdentity": "DeploymentScriptIdentity",
+    "createSignCertificateIdentity": "createSignCertificateIdentity",
     "signCertScriptUri": "https://raw.githubusercontent.com/colbylwilliams/DTLGateway/main/scripts/Az-CreateSigningCertificate.ps1",
     "createSignCertificate": "[or(empty(parameters('signCertificate')), empty(parameters('signCertificatePassword')), empty(parameters('signCertificateThumbprint')))]"
   },
@@ -106,7 +106,7 @@
       "apiVersion": "2019-09-01",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[variables('deploymentScriptIdentity')]"
+        "[variables('createSignCertificateIdentity')]"
       ],
       "properties": {
         "enabledForDeployment": true,
@@ -302,7 +302,7 @@
     },
     {
       "condition": "[variables('createSignCertificate')]",
-      "name": "[variables('deploymentScriptIdentity')]",
+      "name": "[variables('createSignCertificateIdentity')]",
       "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
       "apiVersion": "2018-11-30",
       "location": "[resourceGroup().location]"
@@ -317,12 +317,12 @@
       "identity": {
         "type": "UserAssigned",
         "userAssignedIdentities": {
-          "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('deploymentScriptIdentity'))]": { /*ttk bug*/
+          "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('createSignCertificateIdentity'))]": { /*ttk bug*/
           }
         }
       },
       "dependsOn": [
-        "[variables('deploymentScriptIdentity')]",
+        "[variables('createSignCertificateIdentity')]",
         "scriptIdentityAccessPolicyDeployment",
         "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
       ],
@@ -663,7 +663,7 @@
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2019-10-01",
       "dependsOn": [
-        "[variables('deploymentScriptIdentity')]",
+        "[variables('createSignCertificateIdentity')]",
         "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
       ],
       "properties": {
@@ -678,11 +678,11 @@
           "keyVaultName": {
             "value": "[variables('keyVaultName')]"
           },
-          "deploymentScriptIdentityTenantId": {
-            "value": "[if(variables('createSignCertificate'), reference(variables('deploymentScriptIdentity'), '2018-11-30').tenantId, json('null'))]"
+          "createSignCertificateIdentityTenantId": {
+            "value": "[if(variables('createSignCertificate'), reference(variables('createSignCertificateIdentity'), '2018-11-30').tenantId, json('null'))]"
           },
-          "deploymentScriptIdentityPrincipalId": {
-            "value": "[if(variables('createSignCertificate'), reference(variables('deploymentScriptIdentity'), '2018-11-30').principalId, json('null'))]"
+          "createSignCertificateIdentityPrincipalId": {
+            "value": "[if(variables('createSignCertificate'), reference(variables('createSignCertificateIdentity'), '2018-11-30').principalId, json('null'))]"
           }
         },
         "template": {
@@ -695,10 +695,10 @@
             "keyVaultName": {
               "type": "string"
             },
-            "deploymentScriptIdentityTenantId": {
+            "createSignCertificateIdentityTenantId": {
               "type": "string"
             },
-            "deploymentScriptIdentityPrincipalId": {
+            "createSignCertificateIdentityPrincipalId": {
               "type": "string"
             }
           },
@@ -713,8 +713,8 @@
               "properties": {
                 "accessPolicies": [
                   {
-                    "tenantId": "[parameters('deploymentScriptIdentityTenantId')]",
-                    "objectId": "[parameters('deploymentScriptIdentityPrincipalId')]",
+                    "tenantId": "[parameters('createSignCertificateIdentityTenantId')]",
+                    "objectId": "[parameters('createSignCertificateIdentityPrincipalId')]",
                     "permissions": {
                       "keys": [
                         "get",

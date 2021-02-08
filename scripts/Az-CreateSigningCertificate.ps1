@@ -46,13 +46,9 @@ else {
         }
     } while ($operation.Status -ne 'completed')
 
-    $password = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 20 | % { [char] $_ })
-
-    # Start-Sleep -Seconds 20
+    $password = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 20 | ForEach-Object { [char] $_ })
 
     $cert = Get-AzKeyVaultCertificate -VaultName $vaultName -Name SignCert
-
-    # Start-Sleep -Seconds 20
 
     $secret = Get-AzKeyVaultSecret -VaultName $vaultName -Name $cert.Name -AsPlainText
     $secretByte = [Convert]::FromBase64String($secret)
