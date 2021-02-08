@@ -1,0 +1,147 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "name": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the lab."
+            }
+        },
+        "identityType": {
+            "type": "string",
+            "defaultValue": "SystemAssigned"
+        },
+        "labIsolation": {
+            "type": "string",
+            "defaultValue": "Disabled"
+        },
+        "gatewayHostname": {
+            "type": "string",
+            "metadata": {
+                "description": "The hostname for the remote desktop gateway used by this lab."
+            }
+        },
+        "gatewayToken": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Gateway token secret."
+            }
+        }
+    },
+    "variables": {
+        "gatewayTokenName": "gateway"
+    },
+    "resources": [
+        {
+            "name": "[parameters('name')]",
+            "type": "Microsoft.DevTestLab/labs",
+            "apiVersion": "2018-10-15-preview",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "labStorageType": "Premium",
+                "isolateLabResources": "[parameters('labIsolation')]",
+                "extendedProperties": {
+                    "RdpGateway": "[parameters('gatewayHostname')]",
+                    "RdpConnectionType": "7",
+                    "RdgTokenSecretName": "[variables('gatewayTokenName')]"
+                }
+            },
+            "identity": {
+                "type": "[parameters('identityType')]"
+            },
+            "resources": [
+                {
+                    "apiVersion": "2018-10-15-preview",
+                    "name": "LabVmsShutdown",
+                    "location": "[resourceGroup().location]",
+                    "type": "schedules",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.DevTestLab/labs', parameters('name'))]"
+                    ],
+                    "properties": {
+                        "status": "Enabled",
+                        "timeZoneId": "Central Standard Time",
+                        "dailyRecurrence": {
+                            "time": "1900"
+                        },
+                        "taskType": "LabVmsShutdownTask",
+                        "notificationSettings": {
+                            "status": "Disabled",
+                            "timeInMinutes": 30
+                        }
+                    }
+                },
+                {
+                    "apiVersion": "2018-10-15-preview",
+                    "name": "[concat(parameters('name'), '-vnet')]",
+                    "type": "virtualNetworks",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.DevTestLab/labs', parameters('name'))]"
+                    ]
+                },
+                {
+                    "apiVersion": "2018-10-15-preview",
+                    "name": "Public Environment Repo",
+                    "type": "artifactSources",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.DevTestLab/labs', parameters('name'))]"
+                    ],
+                    "properties": {
+                        "status": "Enabled"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "gatewaySecretDeployment",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2019-10-01",
+            "dependsOn": [
+                "[resourceId('Microsoft.DevTestLab/labs', parameters('name'))]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "expressionEvaluationOptions": {
+                    "scope": "inner"
+                },
+                "parameters": {
+                    "gatewaySecretName": {
+                        "value": "[concat(last(split(reference(parameters('name'), '2018-09-15').vaultName, '/')), '/', variables('gatewayTokenName'))]"
+                    },
+                    "gatewayToken": {
+                        "value": "[parameters('gatewayToken')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "gatewaySecretName": {
+                            "type": "string"
+                        },
+                        "gatewayToken": {
+                            "type": "securestring"
+                        }
+                    },
+                    "resources": [
+                        {
+                            "name": "[parameters('gatewaySecretName')]",
+                            "type": "Microsoft.KeyVault/vaults/secrets",
+                            "apiVersion": "2019-09-01",
+                            "tags": {},
+                            "properties": {
+                                "value": "[parameters('gatewayToken')]",
+                                "attributes": {
+                                    "enabled": "true"
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}
