@@ -2,6 +2,12 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
+    // "name": {
+    //   "type": "string",
+    //   "metadata": {
+    //     "description": "Gateway resource name."
+    //   }
+    // },
     "adminUsername": {
       "type": "string",
       "metadata": {
@@ -89,152 +95,18 @@
     "githubRepoUrl": "https://github.com/colbylwilliams/DTLGateway",
     "githubRepoPath": "src/DTLGateway",
     "githubBranch": "main",
-    "deploymentScriptRunner": "DeploymentScriptRunner",
+    "deploymentScriptIdentity": "DeploymentScriptIdentity",
     "signCertScriptUri": "https://raw.githubusercontent.com/colbylwilliams/DTLGateway/main/scripts/Az-CreateSigningCertificate.ps1",
     "createSignCertificate": "[or(empty(parameters('signCertificate')), empty(parameters('signCertificatePassword')), empty(parameters('signCertificateThumbprint')))]"
   },
   "resources": [
-    {
-      "type": "Microsoft.Compute/virtualMachineScaleSets",
-      "name": "[variables('vmssName')]",
-      "location": "[resourceGroup().location]",
-      "apiVersion": "2019-07-01",
-      "dependsOn": [
-        "createSignCertificateScript",
-        "[resourceId('Microsoft.Web/sites', variables('functionAppName'))]",
-        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
-        "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]",
-        "[resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName'))]",
-        "[resourceId('Microsoft.KeyVault/vaults/secrets', variables('keyVaultName'), variables('keyVaultSecretSSLCertificate'))]",
-        "[resourceId('Microsoft.KeyVault/vaults/secrets', variables('keyVaultName'), variables('keyVaultSecretSignCertificate'))]"
-      ],
-      "sku": {
-        "name": "Standard_B4ms",
-        "capacity": 0
-      },
-      "properties": {
-        "overprovision": true,
-        "singlePlacementGroup": true,
-        "doNotRunExtensionsOnOverprovisionedVMs": false,
-        "upgradePolicy": {
-          "mode": "Manual"
-        },
-        "virtualMachineProfile": {
-          "osProfile": {
-            "adminUsername": "[parameters('adminUsername')]",
-            "adminPassword": "[parameters('adminPassword')]",
-            "computerNamePrefix": "[variables('vmNamePrefix')]",
-            "windowsConfiguration": {
-              "provisionVMAgent": true,
-              "enableAutomaticUpdates": true
-            },
-            "secrets": [
-              {
-                "sourceVault": {
-                  "id": "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
-                },
-                "vaultCertificates": [
-                  {
-                    "certificateUrl": "[reference(resourceId('Microsoft.KeyVault/vaults/secrets', variables('keyVaultName'), variables('keyVaultSecretSSLCertificate'))).secretUriWithVersion]",
-                    "certificateStore": "My"
-                  },
-                  {
-                    "certificateUrl": "[reference(resourceId('Microsoft.KeyVault/vaults/secrets', variables('keyVaultName'), variables('keyVaultSecretSignCertificate'))).secretUriWithVersion]",
-                    "certificateStore": "My"
-                  }
-                ]
-              }
-            ]
-          },
-          "storageProfile": {
-            "osDisk": {
-              "osType": "Windows",
-              "createOption": "FromImage",
-              "caching": "ReadWrite",
-              "managedDisk": {
-                "storageAccountType": "Premium_LRS"
-              },
-              "diskSizeGB": 127
-            },
-            "imageReference": {
-              "publisher": "MicrosoftWindowsServer",
-              "offer": "WindowsServer",
-              "sku": "2019-Datacenter",
-              "version": "latest"
-            }
-          },
-          "networkProfile": {
-            "networkInterfaceConfigurations": [
-              {
-                "name": "nic",
-                "properties": {
-                  "primary": true,
-                  "enableAcceleratedNetworking": false,
-                  "dnsSettings": {
-                    "dnsServers": []
-                  },
-                  "enableIPForwarding": false,
-                  "ipConfigurations": [
-                    {
-                      "name": "ipconfig",
-                      "properties": {
-                        "privateIPAddressVersion": "IPv4",
-                        "subnet": {
-                          "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('snetGatewayName'))]"
-                        },
-                        "loadBalancerBackendAddressPools": [
-                          {
-                            // "id": "[concat('/subscriptions/', subscription().subscriptionId,'/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/loadBalancers/', variables('loadBalancerName'), '/backendAddressPools/', variables('loadBalancerBackEndName'))]"
-                            "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', variables('loadBalancerName'), variables('loadBalancerBackEndName'))]"
-                          }
-                        ],
-                        "loadBalancerInboundNatPools": [
-                          {
-                            "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/inboundNatPools/', variables('loadBalancerNatPoolName'))]"
-                            // "id": "[concat('/subscriptions/', subscription().subscriptionId,'/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/loadBalancers/', variables('loadBalancerName'), '/inboundNatPools/', variables('loadBalancerNatPoolName'))]"
-                          }
-                        ]
-                      }
-                    }
-                  ]
-                }
-              }
-            ]
-          }
-          // "extensionProfile": {
-          //   "extensions": [
-          //     {
-          //       "name": "Initialize",
-          //       "properties": {
-          //         "publisher": "Microsoft.Compute",
-          //         "type": "CustomScriptExtension",
-          //         "typeHandlerVersion": "1.8",
-          //         "autoUpgradeMinorVersion": true,
-          //         "settings": {
-          //           "fileUris": [
-          //             "[concat(reference(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2017-10-01').primaryEndpoints.blob, variables('artifactsContainerName'), '/gateway.ps1')]",
-          //             "[concat(reference(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2017-10-01').primaryEndpoints.blob, variables('artifactsContainerName'), '/RDGatewayFedAuth.msi')]"
-          //           ],
-          //           "commandToExecute": "[concat('powershell.exe -ExecutionPolicy Unrestricted -Command \"& { $script = gci -Filter gateway.ps1 -Recurse | sort -Descending -Property LastWriteTime | select -First 1 -ExpandProperty FullName; . $script -SslCertificateThumbprint ', parameters('sslCertificateThumbprint'), ' -SignCertificateThumbprint ', if(variables('createSignCertificate'), reference('createSignCertificateScript').outputs.thumbprint, parameters('signCertificateThumbprint')), ' -TokenFactoryHostname ', reference(resourceId('Microsoft.Web/sites', variables('functionAppName')), '2018-02-01').defaultHostName, ' }\"')]"
-          //         },
-          //         "protectedSettings": {
-          //           "storageAccountName": "[variables('storageAccountName')]",
-          //           "storageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts',variables('storageAccountName')), '2019-04-01').keys[0].value]"
-          //         }
-          //       }
-          //     }
-          //   ]
-          // }
-        }
-      }
-    },
     {
       "name": "[variables('keyVaultName')]",
       "type": "Microsoft.KeyVault/vaults",
       "apiVersion": "2019-09-01",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[variables('deploymentScriptRunner')]"
+        "[variables('deploymentScriptIdentity')]"
       ],
       "properties": {
         "enabledForDeployment": true,
@@ -299,6 +171,7 @@
       "type": "microsoft.insights/components",
       "name": "[variables('appInsightsName')]",
       "location": "[resourceGroup().location]",
+      "kind": "web",
       "properties": {
         "Application_Type": "web",
         "ApplicationId": "[variables('appInsightsName')]"
@@ -429,7 +302,7 @@
     },
     {
       "condition": "[variables('createSignCertificate')]",
-      "name": "[variables('deploymentScriptRunner')]",
+      "name": "[variables('deploymentScriptIdentity')]",
       "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
       "apiVersion": "2018-11-30",
       "location": "[resourceGroup().location]"
@@ -444,13 +317,13 @@
       "identity": {
         "type": "UserAssigned",
         "userAssignedIdentities": {
-          "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('deploymentScriptRunner'))]": { /*ttk bug*/
+          "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('deploymentScriptIdentity'))]": { /*ttk bug*/
           }
         }
       },
       "dependsOn": [
-        "[variables('deploymentScriptRunner')]",
-        "assignScriptRunnerAccessPolicyDeployment",
+        "[variables('deploymentScriptIdentity')]",
+        "scriptIdentityAccessPolicyDeployment",
         "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
       ],
       "properties": {
@@ -653,12 +526,144 @@
       }
     },
     {
+      "type": "Microsoft.Compute/virtualMachineScaleSets",
+      "name": "[variables('vmssName')]",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2019-07-01",
+      "dependsOn": [
+        "createSignCertificateScript",
+        "[resourceId('Microsoft.Web/sites', variables('functionAppName'))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]",
+        "[resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName'))]",
+        "[resourceId('Microsoft.KeyVault/vaults/secrets', variables('keyVaultName'), variables('keyVaultSecretSSLCertificate'))]",
+        "[resourceId('Microsoft.KeyVault/vaults/secrets', variables('keyVaultName'), variables('keyVaultSecretSignCertificate'))]"
+      ],
+      "sku": {
+        "name": "Standard_B4ms",
+        "capacity": 0
+      },
+      "properties": {
+        "overprovision": true,
+        "singlePlacementGroup": true,
+        "doNotRunExtensionsOnOverprovisionedVMs": false,
+        "upgradePolicy": {
+          "mode": "Manual"
+        },
+        "virtualMachineProfile": {
+          "osProfile": {
+            "adminUsername": "[parameters('adminUsername')]",
+            "adminPassword": "[parameters('adminPassword')]",
+            "computerNamePrefix": "[variables('vmNamePrefix')]",
+            "windowsConfiguration": {
+              "provisionVMAgent": true,
+              "enableAutomaticUpdates": true
+            },
+            "secrets": [
+              {
+                "sourceVault": {
+                  "id": "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+                },
+                "vaultCertificates": [
+                  {
+                    "certificateUrl": "[reference(resourceId('Microsoft.KeyVault/vaults/secrets', variables('keyVaultName'), variables('keyVaultSecretSSLCertificate'))).secretUriWithVersion]",
+                    "certificateStore": "My"
+                  },
+                  {
+                    "certificateUrl": "[reference(resourceId('Microsoft.KeyVault/vaults/secrets', variables('keyVaultName'), variables('keyVaultSecretSignCertificate'))).secretUriWithVersion]",
+                    "certificateStore": "My"
+                  }
+                ]
+              }
+            ]
+          },
+          "storageProfile": {
+            "osDisk": {
+              "osType": "Windows",
+              "createOption": "FromImage",
+              "caching": "ReadWrite",
+              "managedDisk": {
+                "storageAccountType": "Premium_LRS"
+              },
+              "diskSizeGB": 127
+            },
+            "imageReference": {
+              "publisher": "MicrosoftWindowsServer",
+              "offer": "WindowsServer",
+              "sku": "2019-Datacenter",
+              "version": "latest"
+            }
+          },
+          "networkProfile": {
+            "networkInterfaceConfigurations": [
+              {
+                "name": "nic",
+                "properties": {
+                  "primary": true,
+                  "enableAcceleratedNetworking": false,
+                  "dnsSettings": {
+                    "dnsServers": []
+                  },
+                  "enableIPForwarding": false,
+                  "ipConfigurations": [
+                    {
+                      "name": "ipconfig",
+                      "properties": {
+                        "privateIPAddressVersion": "IPv4",
+                        "subnet": {
+                          "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('snetGatewayName'))]"
+                        },
+                        "loadBalancerBackendAddressPools": [
+                          {
+                            "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', variables('loadBalancerName'), variables('loadBalancerBackEndName'))]"
+                          }
+                        ],
+                        "loadBalancerInboundNatPools": [
+                          {
+                            "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/inboundNatPools/', variables('loadBalancerNatPoolName'))]"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "extensionProfile": {
+            "extensions": [
+              {
+                "name": "Initialize",
+                "properties": {
+                  "publisher": "Microsoft.Compute",
+                  "type": "CustomScriptExtension",
+                  "typeHandlerVersion": "1.8",
+                  "autoUpgradeMinorVersion": true,
+                  "settings": {
+                    "fileUris": [
+                      "[concat(reference(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2017-10-01').primaryEndpoints.blob, variables('artifactsContainerName'), '/gateway.ps1')]",
+                      "[concat(reference(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2017-10-01').primaryEndpoints.blob, variables('artifactsContainerName'), '/RDGatewayFedAuth.msi')]"
+                    ],
+                    "commandToExecute": "[concat('powershell.exe -ExecutionPolicy Unrestricted -Command \"& { $script = gci -Filter gateway.ps1 -Recurse | sort -Descending -Property LastWriteTime | select -First 1 -ExpandProperty FullName; . $script -SslCertificateThumbprint ', parameters('sslCertificateThumbprint'), ' -SignCertificateThumbprint ', if(variables('createSignCertificate'), reference('createSignCertificateScript').outputs.thumbprint, parameters('signCertificateThumbprint')), ' -TokenFactoryHostname ', reference(resourceId('Microsoft.Web/sites', variables('functionAppName')), '2018-02-01').defaultHostName, ' }\"')]"
+                  },
+                  "protectedSettings": {
+                    "storageAccountName": "[variables('storageAccountName')]",
+                    "storageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts',variables('storageAccountName')), '2019-04-01').keys[0].value]"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
       "condition": "[variables('createSignCertificate')]",
-      "name": "assignScriptRunnerAccessPolicyDeployment",
+      "name": "scriptIdentityAccessPolicyDeployment",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2019-10-01",
       "dependsOn": [
-        "[variables('deploymentScriptRunner')]",
+        "[variables('deploymentScriptIdentity')]",
         "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
       ],
       "properties": {
@@ -673,11 +678,11 @@
           "keyVaultName": {
             "value": "[variables('keyVaultName')]"
           },
-          "deploymentScriptRunnerTenantId": {
-            "value": "[if(variables('createSignCertificate'), reference(variables('deploymentScriptRunner'), '2018-11-30').tenantId, json('null'))]"
+          "deploymentScriptIdentityTenantId": {
+            "value": "[if(variables('createSignCertificate'), reference(variables('deploymentScriptIdentity'), '2018-11-30').tenantId, json('null'))]"
           },
-          "deploymentScriptRunnerPrincipalId": {
-            "value": "[if(variables('createSignCertificate'), reference(variables('deploymentScriptRunner'), '2018-11-30').principalId, json('null'))]"
+          "deploymentScriptIdentityPrincipalId": {
+            "value": "[if(variables('createSignCertificate'), reference(variables('deploymentScriptIdentity'), '2018-11-30').principalId, json('null'))]"
           }
         },
         "template": {
@@ -690,10 +695,10 @@
             "keyVaultName": {
               "type": "string"
             },
-            "deploymentScriptRunnerTenantId": {
+            "deploymentScriptIdentityTenantId": {
               "type": "string"
             },
-            "deploymentScriptRunnerPrincipalId": {
+            "deploymentScriptIdentityPrincipalId": {
               "type": "string"
             }
           },
@@ -708,8 +713,8 @@
               "properties": {
                 "accessPolicies": [
                   {
-                    "tenantId": "[parameters('deploymentScriptRunnerTenantId')]",
-                    "objectId": "[parameters('deploymentScriptRunnerPrincipalId')]",
+                    "tenantId": "[parameters('deploymentScriptIdentityTenantId')]",
+                    "objectId": "[parameters('deploymentScriptIdentityPrincipalId')]",
                     "permissions": {
                       "keys": [
                         "get",
