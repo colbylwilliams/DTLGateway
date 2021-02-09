@@ -135,7 +135,7 @@ except json.decoder.JSONDecodeError:
 
 
 # ----------------------
-# deploy arm
+# deploy arm template
 # ----------------------
 
 arm_params_obj = {
@@ -171,6 +171,10 @@ except json.decoder.JSONDecodeError:
     raise ChildProcessError('Failed to deploy arm template: {}'.format(deployj))
 
 
+# ----------------------
+# upload artifacts
+# ----------------------
+
 print('\nSyncing artifacts')
 
 syncj = subprocess.run([
@@ -180,11 +184,10 @@ syncj = subprocess.run([
     '--source', './artifacts/'
 ], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True).stdout
 
-# try:
-#     sync = json.loads(syncj)
-# except json.decoder.JSONDecodeError:
-#     raise ChildProcessError('Failed to sync artifacts: {}'.format(syncj))
 
+# ----------------------
+# scale gateway
+# ----------------------
 
 print('\nScaling gateway')
 
