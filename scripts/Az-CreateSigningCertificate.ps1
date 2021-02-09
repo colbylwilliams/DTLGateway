@@ -1,3 +1,11 @@
+<#
+Copyright (c) Microsoft Corporation.
+Licensed under the MIT License.
+
+.SYNOPSIS
+Creates signing certificate necessary to work with token authenticated based Remote Desktop Gateway.
+#>
+
 param(
     [string] [Parameter(Mandatory = $true)] $vaultName
 )
@@ -46,10 +54,13 @@ else {
         }
     } while ($operation.Status -ne 'completed')
 
+    # create a random password for the pfx export
     $password = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 20 | ForEach-Object { [char] $_ })
 
+    # get the cert we just created
     $cert = Get-AzKeyVaultCertificate -VaultName $vaultName -Name SignCert
 
+    # export the pfx incl private key
     $secret = Get-AzKeyVaultSecret -VaultName $vaultName -Name $cert.Name -AsPlainText
     $secretByte = [Convert]::FromBase64String($secret)
     $x509Cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($secretByte, "", "Exportable,PersistKeySet")
@@ -57,6 +68,7 @@ else {
     $pfxFileByte = $x509Cert.Export($type, $password)
     $pfxBase64 = [System.Convert]::ToBase64String($pfxFileByte)
 
+    # Set required values to use in arm template
     $DeploymentScriptOutputs['thumbprint'] = $cert.Thumbprint
     $DeploymentScriptOutputs['password'] = $password
     $DeploymentScriptOutputs['base64'] = $pfxBase64
