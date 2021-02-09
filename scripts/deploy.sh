@@ -1,129 +1,169 @@
-#!/bin/bash
+#!/bin/sh
 
-DIR=$(dirname $0)
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
 
-if [ $# -eq 0 ]; then
-  echo "Usage:"
-  echo "================================================================"
-  exit 0
+set -e
+
+cdir=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
+
+azureDeploy="$cdir/azuredeploy.json"
+artifacts="$cdir/artifacts"
+
+helpText=$(cat << endHelp
+
+Remote Desktop Gateway Deploy Utility
+
+Options:
+  -h  View this help output text again.
+
+  -g  Resource Group: The Name for the new Azure Resource Group to create.
+        The value must be a string.  Resource Group names are case insensitive.
+        Alphanumeric, underscore, parentheses, hyphen, period (except at the end) are valid.
+
+  -l  Location. Values from: az account list-locations.
+        You can configure the default location using az configure --defaults location=<location>.
+
+  -s  Name or ID of subscription.
+        You can configure the default subscription using az account set -s NAME_OR_ID.
+
+  -u  The admin username for the gateway vms.
+
+  -p  The admin password for the gateway vms.
+
+  -c  Path to the SSL certificate .pfx or .p12 file.
+
+  -k  The SSL certificate password for installation.
+
+Examples:
+
+    $ deploy.sh -g MyResoruceGroup -l eastus -u Admin -p SoSecure1 -c ./Cert.p12 -k 12345
+
+endHelp
+)
+
+# show help text if called with no args
+if (($# == 0)); then
+    echo "$helpText" >&2; exit 0
 fi
 
-while [ $# -gt 0 ]; do
-  if [[ $1 == *"--"* ]]; then
-    param="${1/--/}"
-    declare PARAM_${param^^}="$2"
-    # echo "PARAM_${param^^}=$2"
-  fi
-  shift
+# get arg values
+while getopts ":g:l:s:u:p:c:k:h:" opt; do
+    case $opt in
+        g)  resourceGroup=$OPTARG;;
+        l)  region=$OPTARG;;
+        s)  subscription=$OPTARG;;
+        u)  adminUsername=$OPTARG;;
+        p)  adminPassword=$OPTARG;;
+        c)  sslCertificate=$OPTARG;;
+        k)  sslCertificatePassword=$OPTARG;;
+        h)  echo "$helpText" >&2; exit 0;;
+        \?) echo "    Invalid option -$OPTARG $helpText" >&2; exit 1;;
+        :)  echo "    Option -$OPTARG requires an argument $helpText." >&2; exit 1;;
+    esac
 done
 
-fail () {
-    echo >&2 "$@"
+if [ ! -f "$sslCertificate" ]; then
+    echo "$sslCertificate not found.  Please check the path is correct and try again."
     exit 1
-}
-
-
-readonly TEMPLATE="$( find $DIR -maxdepth 1 -iname "azuredeploy.json" )"
-[ -f "$TEMPLATE" ] || fail "Missing deployment template 'azuredeploy.json' in $DIR"
-
-[ -z "$PARAM_SUBSCRIPTION" ] && { PARAM_SUBSCRIPTION="$(az account show --query 'id' -o tsv)"; }
-az account set -s "$PARAM_SUBSCRIPTION" || fail "Failed to set/identify subscription context"
-
-[ -z "$PARAM_RESOURCEGROUP" ] && fail "ResourceGroup name must not be empty"
-[ "$(az group exists -n $PARAM_RESOURCEGROUP)" == "true" ] || fail "ResourceGroup could not be found"
-
-[ -z "$PARAM_RESET" ] && { PARAM_RESET="false"; }
-[[ "TRUE|FALSE" == *"${PARAM_RESET^^}"* ]] || fail "Reset must be 'true' or 'false'"
-
-PARAM_INSTANCECOUNT=$(echo "$PARAM_INSTANCECOUNT" | sed 's/[^0-9]*//g')
-[ -z "$PARAM_INSTANCECOUNT" ] && { PARAM_INSTANCECOUNT=0; }
-
-[ -z "$PARAM_ADMINUSERNAME" ] && fail "Admin username must not be empty"
-[ -z "$PARAM_ADMINPASSWORD" ] && fail "Admin password must not be empty"
-
-[ -f "$PARAM_SSLCERTIFICATE" ] ||	fail "SSL certificate could not be found"
-[ -z "$PARAM_SSLCERTIFICATEPASSWORD" ] && fail "SSL certificate password must not be empty"
-
-SSLCERTIFICATE_ENCODED=$( base64 $PARAM_SSLCERTIFICATE )
-SSLCERTIFICATE_THUMBPRINT=$( openssl pkcs12 -in $PARAM_SSLCERTIFICATE -nodes -passin pass:$PARAM_SSLCERTIFICATEPASSWORD | openssl x509 -noout -fingerprint | cut -d "=" -f 2 | sed 's/://g' )
-SSLCERTIFICATE_COMMONNAME=$( openssl pkcs12 -in $PARAM_SSLCERTIFICATE -nodes -passin pass:$PARAM_SSLCERTIFICATEPASSWORD | openssl x509 -noout -subject | rev | cut -d "=" -f 1 | rev | sed 's/ //g' )
-
-[ -f "$PARAM_SIGNINGCERTIFICATE" ] ||	fail "Signing certificate could not be found"
-[ -z "$PARAM_SIGNINGCERTIFICATEPASSWORD" ] && fail "Signing certificate password must not be empty"
-
-SIGNINGCERTIFICATE_ENCODED=$( base64 $PARAM_SIGNINGCERTIFICATE )
-SIGNINGCERTIFICATE_THUMBPRINT=$( openssl pkcs12 -in $PARAM_SIGNINGCERTIFICATE -nodes -passin pass:$PARAM_SIGNINGCERTIFICATEPASSWORD | openssl x509 -noout -fingerprint | cut -d "=" -f 2 | sed 's/://g' )
-
-TEMPLATE_PARAMS+=( --parameters adminUsername="$PARAM_ADMINUSERNAME" )
-TEMPLATE_PARAMS+=( --parameters adminPassword="$PARAM_ADMINPASSWORD" )
-
-TEMPLATE_PARAMS+=( --parameters sslCertificate="$SSLCERTIFICATE_ENCODED" )
-TEMPLATE_PARAMS+=( --parameters sslCertificatePassword="$PARAM_SSLCERTIFICATEPASSWORD" )
-TEMPLATE_PARAMS+=( --parameters sslCertificateThumbprint="$SSLCERTIFICATE_THUMBPRINT" )
-
-TEMPLATE_PARAMS+=( --parameters signCertificate="$SIGNINGCERTIFICATE_ENCODED" )
-TEMPLATE_PARAMS+=( --parameters signCertificatePassword="$PARAM_SIGNINGCERTIFICATEPASSWORD" )
-TEMPLATE_PARAMS+=( --parameters signCertificateThumbprint="$SIGNINGCERTIFICATE_THUMBPRINT" )
-
-if [ "${PARAM_RESET^^}" == "TRUE" ]; then
-  echo -e "\nDeleting resources ..."
-  TEMPLATE_RESULT=$( az deployment group create \
-    --subscription "$PARAM_SUBSCRIPTION" \
-    --resource-group "$PARAM_RESOURCEGROUP" \
-    --name "$( uuidgen )" \
-    --no-prompt true --mode Complete \
-    --template-uri "https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/100-blank-template/azuredeploy.json" )
-  echo -e "\nDeallocating resources ..."
-  sleep 1m
 fi
 
-echo -e "\nDeploying resources ..."
-TEMPLATE_RESULT=$( az deployment group create \
-  --subscription "$PARAM_SUBSCRIPTION" \
-  --resource-group "$PARAM_RESOURCEGROUP" \
-  --name "$( uuidgen )" \
-  --no-prompt true --mode Incremental \
-  --template-file "$TEMPLATE" \
-  "${TEMPLATE_PARAMS[@]}" )
-
-if [ -d "$DIR/artifacts" ]; then
-  echo -e "\nSynchronizing artifacts ..."
-  ARTIFACTS_STORAGE=$( echo $TEMPLATE_RESULT | jq --raw-output '.properties.outputs.artifactsStorage.value' )
-  ARTIFACTS_CONTAINER=$( echo $TEMPLATE_RESULT | jq --raw-output '.properties.outputs.artifactsContainer.value' )
-  az storage blob sync --account-name $ARTIFACTS_STORAGE -c $ARTIFACTS_CONTAINER -s "$DIR/artifacts/" > /dev/null 2>&1 &
+# check for the azure cli
+if ! [ -x "$(command -v az)" ]; then
+    echo 'Error: az command is not installed.\nThe Azure CLI is required to run this deploy script.  Please install the Azure CLI, run az login, then try again.  Aborting.' >&2
+    exit 1
 fi
 
-GATEWAY_IP=$( echo $TEMPLATE_RESULT | jq --raw-output '.properties.outputs.gatewayIP.value' )
-GATEWAY_FQDN=$( echo $TEMPLATE_RESULT | jq --raw-output '.properties.outputs.gatewayFQDN.value' )
-GATEWAY_SCALESET=$( echo $TEMPLATE_RESULT | jq --raw-output '.properties.outputs.gatewayScaleSet.value' )
-GATEWAY_FUNCTION=$( echo $TEMPLATE_RESULT | jq --raw-output '.properties.outputs.gatewayFunction.value' )
+# check if logged in to azure cli
+az account show -s $subscription 1> /dev/null
 
-if [ $PARAM_INSTANCECOUNT -gt 0 ]; then
-  echo -e "\nScaling gateway ..."
-  az vmss scale --subscription "$PARAM_SUBSCRIPTION" --resource-group "$PARAM_RESOURCEGROUP" --name $GATEWAY_SCALESET --new-capacity $PARAM_INSTANCECOUNT > /dev/null 2>&1 &
+if [ $? != 0 ];
+then
+    az login
 fi
 
-if [ ! -z "$GATEWAY_FUNCTION" ]; then
-  echo -e "\nRenew gateway key ..."
-  GATEWAY_KEY=$(az functionapp keys set \
-    --subscription "$PARAM_SUBSCRIPTION" \
-    --resource-group "$PARAM_RESOURCEGROUP" \
-    --name "$GATEWAY_FUNCTION" \
-    --key-name "gateway" \
-    --key-type "functionKeys" \
-    --query "value" \
-    -o tsv)
+
+# remove e so `az group show` won't exit if an existing group isn't found
+set +e
+
+echo "Checking for existing resource group'$resourceGroup'"
+
+# check for an existing resource group
+az group show -g $resourceGroup --subscription $subscription 1> /dev/null
+
+
+if [ $? != 0 ]; then
+    echo "Resource group '$resourceGroup' not found, creating..\n"
+    set -e
+    (
+        az group create -n $resourceGroup -l $region --subscription $subscription 1> /dev/null
+    )
 fi
 
-if [ ! -z "$SSLCERTIFICATE_COMMONNAME" ]; then
-  echo -e "\nRegister Remote Desktop Gateway with your DNS using one of the following two options:"
-  echo -e "- Create an A-Record:     $SSLCERTIFICATE_COMMONNAME -> $GATEWAY_IP"
-  echo -e "- Create an CNAME-Record: $SSLCERTIFICATE_COMMONNAME -> $GATEWAY_FQDN"
-  if [ ! -z "$GATEWAY_KEY" ]; then
-    echo -e "\nGateway API endpoint:"
-    echo -e "- Url:  https://$SSLCERTIFICATE_COMMONNAME/api/..."
-    echo -e "- Code: $GATEWAY_KEY"
+sslCertificateBase64=$( base64 $sslCertificate )
+sslCertificateThumbprint=$( openssl pkcs12 -in $sslCertificate -nodes -passin pass:$sslCertificatePassword | openssl x509 -noout -fingerprint | cut -d "=" -f 2 | sed 's/://g' )
+sslCertificateCommonName=$( openssl pkcs12 -in $sslCertificate -nodes -passin pass:$sslCertificatePassword | openssl x509 -noout -subject | rev | cut -d "=" -f 1 | rev | sed 's/ //g' )
+
+echo "Deploying arm template.."
+set -e
+(
+  deploy=$(az deployment group create -g $resourceGroup \
+      --subscription $subscription \
+      --template-file $azureDeploy \
+      --parameters adminUsername=$adminUsername \
+                  adminPassword=$adminPassword \
+                  sslCertificate=$sslCertificateBase64 \
+                  sslCertificatePassword=$sslCertificatePassword \
+                  sslCertificateThumbprint=$sslCertificateThumbprint)
+)
+
+if [ -d "$artifacts" ]; then
+  echo "\nSynchronizing artifacts ..."
+  artifactsStorage=$( echo $deploy | jq --raw-output '.properties.outputs.artifactsStorage.value' )
+  artifactsContainer=$( echo $deploy | jq --raw-output '.properties.outputs.artifactsContainer.value' )
+  az storage blob sync --account-name $artifactsStorage -c $artifactsContainer -s "$artifacts" > /dev/null 2>&1 &
+fi
+
+gatewayIP=$( echo $deploy | jq --raw-output '.properties.outputs.gatewayIP.value' )
+gatewayFQDN=$( echo $deploy | jq --raw-output '.properties.outputs.gatewayFQDN.value' )
+gatewayScaleSet=$( echo $deploy | jq --raw-output '.properties.outputs.gatewayScaleSet.value' )
+gatewayFunction=$( echo $deploy | jq --raw-output '.properties.outputs.gatewayFunction.value' )
+
+echo "\nScaling gateway ..."
+az vmss scale --subscription "$subscription" --resource-group "$resourceGroup" --name $gatewayScaleSet --new-capacity 1 > /dev/null 2>&1 &
+
+if [ ! -z "$gatewayFunction" ]; then
+  echo "\nGetting gateway token ..."
+  gatewayTokens=$(az functionapp function keys list \
+    --subscription "$subscription" \
+    --resource-group "$resourceGroup" \
+    --name "$gatewayFunction" \
+    --function-name CreateToken)
+
+  gatewayToken=$( echo $gatewayTokens | jq --raw-output '.gateway' )
+
+  if [ -z "$gatewayToken" ]; then
+    echo "No gateway found, creating ..."
+    gatewayToken=$(az functionapp function keys set \
+      --subscription "$subscription" \
+      --resource-group "$resourceGroup" \
+      --name "$gatewayFunction" \
+      --function-name CreateToken \
+      --key-name gateway
+      --query value
+      -o tsv)
   fi
 fi
 
-echo -e "\ndone."
+if [ ! -z "$sslCertificateCommonName" ]; then
+  echo "\nRegister Remote Desktop Gateway with your DNS using one of the following two options:"
+  echo "- Create an A-Record:     $sslCertificateCommonName -> $gatewayIP"
+  echo "- Create an CNAME-Record: $sslCertificateCommonName -> $gatewayFQDN"
+  if [ ! -z "$gatewayToken" ]; then
+    echo "\nRD Gateway:"
+    echo "- Hostname:  $sslCertificateCommonName"
+    echo "- Token secret: $gatewayToken"
+  fi
+fi
+
+echo "\ndone."
