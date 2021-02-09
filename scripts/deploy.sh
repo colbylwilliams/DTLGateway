@@ -169,14 +169,17 @@ if [ "$gatewayFunction" != "null" ]; then
 fi
 
 
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+
 if [ ! -z "$sslCertificateCommonName" ]; then
-  echo "\n\nRegister Remote Desktop Gateway with your DNS using one of the following two options:\n"
-  echo "- Create an A-Record:     $sslCertificateCommonName -> $gatewayIP"
-  echo "- Create an CNAME-Record: $sslCertificateCommonName -> $gatewayFQDN"
+  echo "\n\n${GREEN}Register Remote Desktop Gateway with your DNS using one of the following two options:${NC}\n"
+  echo "${GREEN}  - Create an A-Record:     $sslCertificateCommonName -> $gatewayIP ${NC}"
+  echo "${GREEN}  - Create an CNAME-Record: $sslCertificateCommonName -> $gatewayFQDN ${NC}"
   if [ ! -z "$gatewayToken" ]; then
-    echo '\n\nUse the following to configure your labs to use the gateway:\n'
-    echo "- Gateway hostname:     $sslCertificateCommonName"
-    echo "- Gateway token secret: $gatewayToken"
+    echo "\n\n${GREEN}Use the following to configure your labs to use the gateway:${NC}\n"
+    echo "${GREEN}  - Gateway hostname:     $sslCertificateCommonName ${NC}"
+    echo "${GREEN}  - Gateway token secret: $gatewayToken ${NC}"
   fi
 fi
 
