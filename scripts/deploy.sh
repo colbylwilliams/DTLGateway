@@ -70,9 +70,16 @@ fi
 
 # check for the azure cli
 if ! [ -x "$(command -v az)" ]; then
-    echo 'Error: az command is not installed.\nThe Azure CLI is required to run this deploy script.  Please install the Azure CLI, run az login, then try again.  Aborting.' >&2
+    echo 'Error: az command is not installed.\n  The Azure CLI is required to run this deploy script.  Please install the Azure CLI, run az login, then try again.\n  Aborting.' >&2
     exit 1
 fi
+
+# check for jq
+if ! [ -x "$(command -v jq)" ]; then
+    echo 'Error: jq command is not installed.\n  jq is required to run this deploy script.  Please install jq from https://stedolan.github.io/jq/download/, then try again.\n  Aborting.' >&2
+    exit 1
+fi
+
 
 # check if logged in to azure cli
 az account show -s $subscription 1> /dev/null
@@ -83,87 +90,95 @@ then
 fi
 
 
-# remove e so `az group show` won't exit if an existing group isn't found
+# remove e so az group show won't exit if an existing group isn't found
 set +e
 
-echo "Checking for existing resource group'$resourceGroup'"
 
 # check for an existing resource group
+echo "\nChecking for existing resource group '$resourceGroup'"
+
 az group show -g $resourceGroup --subscription $subscription 1> /dev/null
 
 
 if [ $? != 0 ]; then
-    echo "Resource group '$resourceGroup' not found, creating..\n"
+    echo "Creating resource group '$resourceGroup'"
     set -e
     (
         az group create -n $resourceGroup -l $region --subscription $subscription 1> /dev/null
     )
 fi
 
+echo "\nParsing SSL certificate\n"
+
 sslCertificateBase64=$( base64 $sslCertificate )
 sslCertificateThumbprint=$( openssl pkcs12 -in $sslCertificate -nodes -passin pass:$sslCertificatePassword | openssl x509 -noout -fingerprint | cut -d "=" -f 2 | sed 's/://g' )
 sslCertificateCommonName=$( openssl pkcs12 -in $sslCertificate -nodes -passin pass:$sslCertificatePassword | openssl x509 -noout -subject | rev | cut -d "=" -f 1 | rev | sed 's/ //g' )
 
-echo "Deploying arm template.."
-set -e
-(
-  deploy=$(az deployment group create -g $resourceGroup \
-      --subscription $subscription \
-      --template-file $azureDeploy \
-      --parameters adminUsername=$adminUsername \
-                  adminPassword=$adminPassword \
-                  sslCertificate=$sslCertificateBase64 \
-                  sslCertificatePassword=$sslCertificatePassword \
-                  sslCertificateThumbprint=$sslCertificateThumbprint)
-)
+echo "\nDeploying arm template"
+
+deploy=$(az deployment group create --subscription $subscription -g $resourceGroup \
+         --template-file $azureDeploy \
+         --parameters adminUsername=$adminUsername \
+                      adminPassword=$adminPassword \
+                      sslCertificate=$sslCertificateBase64 \
+                      sslCertificatePassword=$sslCertificatePassword \
+                      sslCertificateThumbprint=$sslCertificateThumbprint )
 
 if [ -d "$artifacts" ]; then
-  echo "\nSynchronizing artifacts ..."
-  artifactsStorage=$( echo $deploy | jq --raw-output '.properties.outputs.artifactsStorage.value' )
-  artifactsContainer=$( echo $deploy | jq --raw-output '.properties.outputs.artifactsContainer.value' )
+
+  echo "\nSynchronizing artifacts"
+
+  artifactsStorage=$( echo $deploy | jq -r '.properties.outputs.artifactsStorage.value' )
+  artifactsContainer=$( echo $deploy | jq -r '.properties.outputs.artifactsContainer.value' )
   az storage blob sync --account-name $artifactsStorage -c $artifactsContainer -s "$artifacts" > /dev/null 2>&1 &
 fi
 
-gatewayIP=$( echo $deploy | jq --raw-output '.properties.outputs.gatewayIP.value' )
-gatewayFQDN=$( echo $deploy | jq --raw-output '.properties.outputs.gatewayFQDN.value' )
-gatewayScaleSet=$( echo $deploy | jq --raw-output '.properties.outputs.gatewayScaleSet.value' )
-gatewayFunction=$( echo $deploy | jq --raw-output '.properties.outputs.gatewayFunction.value' )
 
-echo "\nScaling gateway ..."
-az vmss scale --subscription "$subscription" --resource-group "$resourceGroup" --name $gatewayScaleSet --new-capacity 1 > /dev/null 2>&1 &
+gatewayIP=$( echo $deploy | jq -r '.properties.outputs.gatewayIP.value' )
+gatewayFQDN=$( echo $deploy | jq -r '.properties.outputs.gatewayFQDN.value' )
+gatewayScaleSet=$( echo $deploy | jq -r '.properties.outputs.gatewayScaleSet.value' )
+gatewayFunction=$( echo $deploy | jq -r '.properties.outputs.gatewayFunction.value' )
 
-if [ ! -z "$gatewayFunction" ]; then
-  echo "\nGetting gateway token ..."
-  gatewayTokens=$(az functionapp function keys list \
-    --subscription "$subscription" \
-    --resource-group "$resourceGroup" \
-    --name "$gatewayFunction" \
-    --function-name CreateToken)
 
-  gatewayToken=$( echo $gatewayTokens | jq --raw-output '.gateway' )
+echo "\nScaling gateway"
 
-  if [ -z "$gatewayToken" ]; then
-    echo "No gateway found, creating ..."
-    gatewayToken=$(az functionapp function keys set \
-      --subscription "$subscription" \
-      --resource-group "$resourceGroup" \
-      --name "$gatewayFunction" \
+az vmss scale --subscription $subscription -g $resourceGroup -n $gatewayScaleSet --new-capacity 1 > /dev/null 2>&1 &
+
+
+if [ "$gatewayFunction" != "null" ]; then
+
+  echo "\nGetting gateway token"
+
+  gatewayTokens=$(az functionapp function keys list --subscription $subscription -g $resourceGroup \
+    -n $gatewayFunction \
+    --function-name CreateToken )
+
+  gatewayToken=$( echo $gatewayTokens | jq -r '.gateway' )
+
+  if [ "$gatewayToken" == "null" ]; then
+
+    echo "No gateway token found, creating"
+
+    gatewayToken=$(az functionapp function keys set --subscription $subscription -g $resourceGroup \
+      -n $gatewayFunction \
       --function-name CreateToken \
-      --key-name gateway
-      --query value
-      -o tsv)
+      --key-name gateway \
+      --query value \
+      -o tsv )
   fi
 fi
 
+
 if [ ! -z "$sslCertificateCommonName" ]; then
-  echo "\nRegister Remote Desktop Gateway with your DNS using one of the following two options:"
+  echo "\n\nRegister Remote Desktop Gateway with your DNS using one of the following two options:\n"
   echo "- Create an A-Record:     $sslCertificateCommonName -> $gatewayIP"
   echo "- Create an CNAME-Record: $sslCertificateCommonName -> $gatewayFQDN"
   if [ ! -z "$gatewayToken" ]; then
-    echo "\nRD Gateway:"
-    echo "- Hostname:  $sslCertificateCommonName"
-    echo "- Token secret: $gatewayToken"
+    echo '\n\nUse the following to configure your labs to use the gateway:\n'
+    echo "- Gateway hostname:     $sslCertificateCommonName"
+    echo "- Gateway token secret: $gatewayToken"
   fi
 fi
 
-echo "\ndone."
+
+echo "\ndone.\n"
