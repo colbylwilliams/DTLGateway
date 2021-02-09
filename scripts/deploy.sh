@@ -168,6 +168,7 @@ if [ "$gatewayFunction" != "null" ]; then
   fi
 fi
 
+echo "\ndone."
 
 GREEN='\033[0;32m'
 NC='\033[0m' # No Color
@@ -183,5 +184,4 @@ if [ ! -z "$sslCertificateCommonName" ]; then
   fi
 fi
 
-
-echo "\ndone.\n"
+echo ""

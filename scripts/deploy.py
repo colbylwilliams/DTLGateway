@@ -235,9 +235,10 @@ except KeyError:
 
     token = gateway_token['value']
 
-green = '\033[0;32m'
-nc = '\033[0m'
+print('\ndone.')
 
+green = '\033[0;32m'
+nc = '\033[0m'  # no color
 
 print(green + '\n\nRegister Remote Desktop Gateway with your DNS using one of the following two options:\n' + nc)
 print(green + '  - Create an A-Record: {}'.format(deploy['properties']['outputs']['gatewayIP']['value']) + nc)
@@ -247,5 +248,4 @@ print(green + '\n\nUse the following to configure your labs to use the gateway:\
 print(green + '  - Gateway public IP address: {}'.format(deploy['properties']['outputs']['gatewayIP']['value']) + nc)
 print(green + '  - Gateway token secret: {}'.format(token) + nc)
 
-
-print('\ndone.\n')
+print('')
