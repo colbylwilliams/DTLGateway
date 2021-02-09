@@ -110,7 +110,8 @@
         "sku": {
           "name": "standard",
           "family": "A"
-        }
+        },
+        "accessPolicies": []
       },
       "resources": [
         {
@@ -187,7 +188,7 @@
       "type": "Microsoft.Web/sites",
       "kind": "functionapp",
       "name": "[variables('functionAppName')]",
-      "apiVersion": "2018-11-01",
+      "apiVersion": "2020-09-01",
       "location": "[resourceGroup().location]",
       "dependsOn": [
         "createSignCertificateScript",
@@ -256,7 +257,7 @@
         {
           "type": "sourcecontrols",
           "name": "web",
-          "apiVersion": "2018-11-01",
+          "apiVersion": "2020-09-01",
           "dependsOn": [
             "[resourceId('Microsoft.Web/Sites', variables('functionAppName'))]"
           ],
@@ -268,6 +269,68 @@
         }
       ]
     },
+    // {
+    //   "type": "Microsoft.Web/sites/sourcecontrols",
+    //   "name": "[concat(variables('functionAppName'), '/', 'web')]",
+    //   "apiVersion": "2020-09-01",
+    //   "dependsOn": [
+    //     "[resourceId('Microsoft.Web/Sites', variables('functionAppName'))]"
+    //   ],
+    //   "properties": {
+    //     "repoUrl": "[variables('githubRepoUrl')]",
+    //     "branch": "[variables('githubBranch')]",
+    //     "isManualIntegration": true
+    //   }
+    // },
+    // {
+    //   "type": "Microsoft.Web/sites/functions/keys",
+    //   "name": "[concat(variables('functionAppName'), '/CreateToken/gateway')]",
+    //   "apiVersion": "2020-09-01",
+    //   "dependsOn": [
+    //     //     "[resourceId('Microsoft.Web/Sites', variables('functionAppName'))]",
+    //     //     "[resourceId('Microsoft.Web/Sites/sourcecontrols', variables('functionAppName'), 'web')]"
+
+    //   ],
+    //   "properties": {}
+    // },
+    // {
+    //   "type": "Microsoft.Resources/deployments",
+    //   "name": "createGatewayTokenDeployment",
+    //   "apiVersion": "2019-10-01",
+    //   "dependsOn": [
+    //     "[resourceId('Microsoft.Web/Sites', variables('functionAppName'))]",
+    //     "[resourceId('Microsoft.Web/Sites/sourcecontrols', variables('functionAppName'), 'web')]"
+    //   ],
+    //   "properties": {
+    //     "mode": "Incremental",
+    //     "expressionEvaluationOptions": {
+    //       "scope": "inner"
+    //     },
+    //     "parameters": {
+    //       "functionAppName": {
+    //         "value": "[variables('functionAppName')]"
+    //       }
+    //     },
+    //     "template": {
+    //       "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    //       "contentVersion": "1.0.0.0",
+    //       "parameters": {
+    //         "functionAppName": {
+    //           "type": "string"
+    //         }
+    //       },
+    //       "resources": [
+    //         {
+    //           "type": "Microsoft.Web/sites/functions/keys",
+    //           "name": "[concat(parameters('functionAppName'), '/CreateToken/gateway')]",
+    //           "apiVersion": "2020-09-01",
+    //           "dependsOn": [],
+    //           "properties": {}
+    //         }
+    //       ]
+    //     }
+    //   }
+    // },
     {
       "type": "Microsoft.KeyVault/vaults/accessPolicies",
       "name": "[concat(variables('keyVaultName'), '/add')]",
@@ -851,6 +914,10 @@
       "type": "string",
       "value": "[variables('functionAppName')]"
     },
+    // "gatewayToken": {
+    //   "type": "string",
+    //   "value": "[listKeys(resourceId('Microsoft.Web/sites/functions', variables('functionAppName'), 'CreateToken'), '2019-08-01').gateway]"
+    // },
     "gatewayIP": {
       "type": "string",
       "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddressName')), '2017-04-01').ipAddress]"
