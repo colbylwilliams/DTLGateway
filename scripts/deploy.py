@@ -121,7 +121,7 @@ groupj = subprocess.run([
 try:
     group = json.loads(groupj)
 except json.decoder.JSONDecodeError:
-    print("Resource group '{}' not found, creating..".format(rg))
+    print("Resource group '{}' not found, creating".format(rg))
     groupj = subprocess.run([
         'az', 'group', 'create', '-n', rg, '-l', loc, '--subscription', sub],
         stdout=subprocess.PIPE, universal_newlines=True).stdout
@@ -169,7 +169,7 @@ except json.decoder.JSONDecodeError:
 # upload artifacts
 # ----------------------
 
-print('\nSyncing artifacts')
+print('\nSynchronizing artifacts')
 
 syncj = subprocess.run([
     'az', 'storage', 'blob', 'sync', '--subscription', sub,
@@ -219,7 +219,7 @@ except json.decoder.JSONDecodeError:
 try:
     token = gateway_tokens['gateway']
 except KeyError:
-    print('No gateway found, creating..')
+    print('No gateway token found, creating')
 
     gateway_tokenj = subprocess.run([
         'az', 'functionapp', 'function', 'keys', 'set', '-g', rg, '--subscription', sub,
@@ -235,13 +235,17 @@ except KeyError:
 
     token = gateway_token['value']
 
-print('\nRegister Remote Desktop Gateway with your DNS using one of the following two options:')
-print('- Create an A-Record: {}'.format(deploy['properties']['outputs']['gatewayIP']['value']))
-print('- Create an CNAME-Record: {}'.format(deploy['properties']['outputs']['gatewayFQDN']['value']))
-
-print('\nUse the following to configure your labs to use the gateway:')
-print('- Gateway public IP address: {}'.format(deploy['properties']['outputs']['gatewayIP']['value']))
-print('- Gateway token secret: {}'.format(token))
+green = '\033[0;32m'
+nc = '\033[0m'
 
 
-print('\nDone.\n')
+print(green + '\n\nRegister Remote Desktop Gateway with your DNS using one of the following two options:\n' + nc)
+print(green + '  - Create an A-Record: {}'.format(deploy['properties']['outputs']['gatewayIP']['value']) + nc)
+print(green + '  - Create an CNAME-Record: {}'.format(deploy['properties']['outputs']['gatewayFQDN']['value']) + nc)
+
+print(green + '\n\nUse the following to configure your labs to use the gateway:\n' + nc)
+print(green + '  - Gateway public IP address: {}'.format(deploy['properties']['outputs']['gatewayIP']['value']) + nc)
+print(green + '  - Gateway token secret: {}'.format(token) + nc)
+
+
+print('\ndone.\n')
