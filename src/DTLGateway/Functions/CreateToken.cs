@@ -19,7 +19,7 @@ using System.Security.Cryptography;
 using Newtonsoft.Json;
 using DTLGateway.Model;
 
-namespace DTLGateway
+namespace DTLGateway.Functions
 {
     public static class CreateToken
     {

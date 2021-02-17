@@ -8,7 +8,7 @@ using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 
-namespace DTLGateway
+namespace DTLGateway.Functions
 {
     public static class HealthCheck
     {

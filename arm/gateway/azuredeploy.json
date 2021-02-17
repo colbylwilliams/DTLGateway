@@ -81,17 +81,20 @@
     "keyVaultSecretSignCertificate": "SignCertificate",
     "vnetName": "[concat(variables('resourcePrefix'),'-vnet')]",
     "snetGatewayName": "RDGateway",
+    "snetBastionName": "AzureBastionSubnet",
     "loadBalancerName": "[concat(variables('resourcePrefix'),'-lb')]",
     "publicIPAddressName": "[concat(variables('resourcePrefix'),'-pip')]",
     "loadBalancerBackEndName": "gatewayBackEnd",
-    "loadBalancerNatPoolName": "gatewayNatPool",
+    // "loadBalancerNatPoolName": "gatewayNatPool",
     "loadBalancerFrontEndName": "gatewayFrontEnd",
+    "bastionHostName": "[concat(variables('resourcePrefix'),'-bh')]",
+    "bastionIPAddressName": "[concat(variables('resourcePrefix'),'-bh-pip')]",
     "githubBranch": "main",
     "githubRepoUrl": "https://github.com/colbylwilliams/DTLGateway",
     "githubRepoPath": "src/DTLGateway",
     "createSignCertificate": "[or(empty(parameters('signCertificate')), empty(parameters('signCertificatePassword')), empty(parameters('signCertificateThumbprint')))]",
     "createSignCertificateIdentity": "createSignCertificateIdentity",
-    "createSignCertificateScriptUri": "https://raw.githubusercontent.com/colbylwilliams/DTLGateway/main/scripts/Az-CreateSigningCertificate.ps1"
+    "createSignCertificateScriptUri": "https://raw.githubusercontent.com/colbylwilliams/DTLGateway/main/tools/Az-CreateSigningCertificate.ps1"
   },
   "resources": [
     {
@@ -269,68 +272,6 @@
         }
       ]
     },
-    // {
-    //   "type": "Microsoft.Web/sites/sourcecontrols",
-    //   "name": "[concat(variables('functionAppName'), '/', 'web')]",
-    //   "apiVersion": "2020-09-01",
-    //   "dependsOn": [
-    //     "[resourceId('Microsoft.Web/Sites', variables('functionAppName'))]"
-    //   ],
-    //   "properties": {
-    //     "repoUrl": "[variables('githubRepoUrl')]",
-    //     "branch": "[variables('githubBranch')]",
-    //     "isManualIntegration": true
-    //   }
-    // },
-    // {
-    //   "type": "Microsoft.Web/sites/functions/keys",
-    //   "name": "[concat(variables('functionAppName'), '/CreateToken/gateway')]",
-    //   "apiVersion": "2020-09-01",
-    //   "dependsOn": [
-    //     //     "[resourceId('Microsoft.Web/Sites', variables('functionAppName'))]",
-    //     //     "[resourceId('Microsoft.Web/Sites/sourcecontrols', variables('functionAppName'), 'web')]"
-
-    //   ],
-    //   "properties": {}
-    // },
-    // {
-    //   "type": "Microsoft.Resources/deployments",
-    //   "name": "createGatewayTokenDeployment",
-    //   "apiVersion": "2019-10-01",
-    //   "dependsOn": [
-    //     "[resourceId('Microsoft.Web/Sites', variables('functionAppName'))]",
-    //     "[resourceId('Microsoft.Web/Sites/sourcecontrols', variables('functionAppName'), 'web')]"
-    //   ],
-    //   "properties": {
-    //     "mode": "Incremental",
-    //     "expressionEvaluationOptions": {
-    //       "scope": "inner"
-    //     },
-    //     "parameters": {
-    //       "functionAppName": {
-    //         "value": "[variables('functionAppName')]"
-    //       }
-    //     },
-    //     "template": {
-    //       "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-    //       "contentVersion": "1.0.0.0",
-    //       "parameters": {
-    //         "functionAppName": {
-    //           "type": "string"
-    //         }
-    //       },
-    //       "resources": [
-    //         {
-    //           "type": "Microsoft.Web/sites/functions/keys",
-    //           "name": "[concat(parameters('functionAppName'), '/CreateToken/gateway')]",
-    //           "apiVersion": "2020-09-01",
-    //           "dependsOn": [],
-    //           "properties": {}
-    //         }
-    //       ]
-    //     }
-    //   }
-    // },
     {
       "type": "Microsoft.KeyVault/vaults/accessPolicies",
       "name": "[concat(variables('keyVaultName'), '/add')]",
@@ -474,6 +415,15 @@
               "privateEndpointNetworkPolicies": "Disabled",
               "privateLinkServiceNetworkPolicies": "Enabled"
             }
+          },
+          {
+            "name": "[variables('snetBastionName')]",
+            "properties": {
+              "addressPrefix": "10.0.1.0/27",
+              "delegations": [],
+              "privateEndpointNetworkPolicies": "Disabled",
+              "privateLinkServiceNetworkPolicies": "Enabled"
+            }
           }
         ],
         "virtualNetworkPeerings": [],
@@ -491,12 +441,53 @@
       },
       "properties": {
         "publicIPAllocationMethod": "Static",
-        // "publicIPAllocationMethod": "Dynamic",
         "publicIPAddressVersion": "IPv4",
         "idleTimeoutInMinutes": 4,
         "dnsSettings": {
           "domainNameLabel": "[toLower(variables('resourcePrefix'))]"
         }
+      }
+    },
+    {
+      "type": "Microsoft.Network/publicIPAddresses",
+      "name": "[variables('bastionIPAddressName')]",
+      "apiVersion": "2020-05-01",
+      "location": "[resourceGroup().location]",
+      "sku": {
+        "name": "Standard"
+      },
+      "properties": {
+        "publicIPAllocationMethod": "Static",
+        "publicIPAddressVersion": "IPv4",
+        "idleTimeoutInMinutes": 4,
+        "dnsSettings": {
+          "domainNameLabel": "[concat(toLower(variables('resourcePrefix')), '-admin')]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Network/bastionHosts",
+      "name": "[variables('bastionHostName')]",
+      "apiVersion": "2020-07-01",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('bastionIPAddressName'))]"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig",
+            "properties": {
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('snetBastionName'))]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('bastionIPAddressName'))]"
+              }
+            }
+          }
+        ]
+        // "dnsName": "string"
       }
     },
     {
@@ -624,23 +615,23 @@
             }
           }
         ],
-        "inboundNatPools": [
-          {
-            "name": "[variables('loadBalancerNatPoolName')]",
-            "properties": {
-              "frontendPortRangeStart": 50000,
-              "frontendPortRangeEnd": 50119,
-              "backendPort": 3389,
-              "protocol": "Tcp",
-              "idleTimeoutInMinutes": 4,
-              "enableFloatingIP": false,
-              "enableTcpReset": false,
-              "frontendIPConfiguration": {
-                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/frontendIPConfigurations/', variables('loadBalancerFrontEndName'))]"
-              }
-            }
-          }
-        ]
+        "inboundNatPools": []
+        //   {
+        //     "name": "[variables('loadBalancerNatPoolName')]",
+        //     "properties": {
+        //       "frontendPortRangeStart": 50000,
+        //       "frontendPortRangeEnd": 50119,
+        //       "backendPort": 3389,
+        //       "protocol": "Tcp",
+        //       "idleTimeoutInMinutes": 4,
+        //       "enableFloatingIP": false,
+        //       "enableTcpReset": false,
+        //       "frontendIPConfiguration": {
+        //         "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/frontendIPConfigurations/', variables('loadBalancerFrontEndName'))]"
+        //       }
+        //     }
+        //   }
+        // ]
       }
     },
     {
@@ -736,11 +727,11 @@
                             "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', variables('loadBalancerName'), variables('loadBalancerBackEndName'))]"
                           }
                         ],
-                        "loadBalancerInboundNatPools": [
-                          {
-                            "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/inboundNatPools/', variables('loadBalancerNatPoolName'))]"
-                          }
-                        ]
+                        "loadBalancerInboundNatPools": []
+                        //   {
+                        //     "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/inboundNatPools/', variables('loadBalancerNatPoolName'))]"
+                        //   }
+                        // ]
                       }
                     }
                   ]

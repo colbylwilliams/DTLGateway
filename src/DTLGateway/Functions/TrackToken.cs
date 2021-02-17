@@ -9,7 +9,7 @@ using Microsoft.Azure.Cosmos.Table;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Logging;
 
-namespace DTLGateway
+namespace DTLGateway.Functions
 {
     public static class TrackToken
     {
