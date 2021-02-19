@@ -68,10 +68,10 @@
     }
   },
   "variables": {
-    "resourcePrefix": "[concat('rdg-', uniqueString(resourceGroup().id))]",
-    "vmNamePrefix": "[take(replace(variables('resourcePrefix'), '-', ''), 9)]",
+    "resourcePrefix": "[concat('rdg', uniqueString(resourceGroup().id))]",
+    "vmNamePrefix": "[take(variables('resourcePrefix'), 9)]",
     "vmssName": "[concat(variables('resourcePrefix'),'-vmss')]",
-    "storageAccountName": "[replace(variables('resourcePrefix'), '-', '')]",
+    "storageAccountName": "[variables('resourcePrefix')]",
     "artifactsContainerName": "artifacts",
     "keyVaultName": "[concat(variables('resourcePrefix'),'-kv')]",
     "hostingPlanName": "[concat(variables('resourcePrefix'),'-hp')]",
