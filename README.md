@@ -84,7 +84,7 @@ Use the following to configure your labs to use the gateway:
   - Gateway token secret: bb1fhnulQQufXoQRkCf1Lzy2vcg/zAVUhlAhUCHd0EajG0afA8RvBA==
 ```
 
-<pre style="color: green;">
+<pre style="color: green;"><code style="color: green;">
 Register Remote Desktop Gateway with your DNS using one of the following two options:
 
   - Create an A-Record:     gateway.example.com -> 80.121.8.170
@@ -95,7 +95,7 @@ Use the following to configure your labs to use the gateway:
 
   - Gateway hostname:     gateway.example.com
   - Gateway token secret: bb1fhnulQQufXoQRkCf1Lzy2vcg/zAVUhlAhUCHd0EajG0afA8RvBA==
-</pre>
+</code></pre>
 
 ```diff
 +Register Remote Desktop Gateway with your DNS using one of the following two options:
