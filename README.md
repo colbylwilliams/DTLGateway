@@ -33,6 +33,7 @@ The following section will walk through deploying a new remote desktop gateway s
 
 1. To deploy the gateway service, you'll first need to clone this repository on your local machine.
     > **Note: The gateway solution is deployed using a bash script in conjunction with an Azure Resource Manager (ARM) template. Make sure to clone the repository in a directory that you can execute a bash script.**
+
 2. Copy the RDGatewayFedAuth.msi file (from the section above) to the artifacts directory located at: [`<PathToClone>/arm/gateway/artifacts`](/arm/gateway/artifacts/)
 
 ### Run deploy.sh
