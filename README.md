@@ -27,9 +27,9 @@ Secondly, you'll need the RDGatewayFedAuth pluggable authentication module that 
 
 ## Deploy Gateway
 
-The following section will walk through deploying a new remote desktop gateway service.
+**_Note: The gateway solution is deployed using a bash script in conjunction with an Azure Resource Manager (ARM) template. Make sure to clone the repository in a directory that you can execute a bash script._**
 
-> **Note: The gateway solution is deployed using a bash script in conjunction with an Azure Resource Manager (ARM) template. Make sure to clone the repository in a directory that you can execute a bash script.**
+The following section will walk through deploying a new remote desktop gateway service.
 
 ### Setup
 
@@ -51,7 +51,7 @@ Next, execute the script at: [`<PathToClone>/arm/gateway/deploy.sh`](/arm/gatewa
 #### Example
 
 ```shell
-$ deploy.sh -g MyResoruceGroup -l eastus -u Admin -p SoSecure1 -c ./Cert.p12 -k 12345
+/bin/sh deploy.sh -g MyResoruceGroup -l eastus -u Admin -p SoSecure1 -c ./Cert.p12 -k 12345
 ```
 
 ### Configure DNS
@@ -59,7 +59,7 @@ $ deploy.sh -g MyResoruceGroup -l eastus -u Admin -p SoSecure1 -c ./Cert.p12 -k 
 The deploy script will take several minutes to run. When it finishes, you should see output similar to this:
 
 ```ansi
-[32m Register Remote Desktop Gateway with your DNS using one of the following two options: [0m
+Register Remote Desktop Gateway with your DNS using one of the following two options:
 
   - Create an A-Record:     gateway.example.com -> 80.121.8.170
   - Create an CNAME-Record: gateway.example.com -> rdg-h2q6vzjonvnhq.eastus.cloudapp.azure.com
@@ -70,6 +70,33 @@ Use the following to configure your labs to use the gateway:
   - Gateway hostname:     gateway.example.com
   - Gateway token secret: bb1fhnulQQufXoQRkCf1Lzy2vcg/zAVUhlAhUCHd0EajG0afA8RvBA==
 ```
+
+<code style="color: green;">
+Register Remote Desktop Gateway with your DNS using one of the following two options:
+
+  - Create an A-Record:     gateway.example.com -> 80.121.8.170
+  - Create an CNAME-Record: gateway.example.com -> rdg-h2q6vzjonvnhq.eastus.cloudapp.azure.com
+
+
+Use the following to configure your labs to use the gateway:
+
+  - Gateway hostname:     gateway.example.com
+  - Gateway token secret: bb1fhnulQQufXoQRkCf1Lzy2vcg/zAVUhlAhUCHd0EajG0afA8RvBA==
+</code>
+
+```diff
+Register Remote Desktop Gateway with your DNS using one of the following two options:
+
+  - Create an A-Record:     gateway.example.com -> 80.121.8.170
+  - Create an CNAME-Record: gateway.example.com -> rdg-h2q6vzjonvnhq.eastus.cloudapp.azure.com
+
+
+Use the following to configure your labs to use the gateway:
+
+  - Gateway hostname:     gateway.example.com
+  - Gateway token secret: bb1fhnulQQufXoQRkCf1Lzy2vcg/zAVUhlAhUCHd0EajG0afA8RvBA==
+```
+
 
 ## Remote Desktop Gateway Terms
 
