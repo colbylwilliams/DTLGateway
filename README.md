@@ -37,7 +37,7 @@ The following section will walk through deploying a new remote desktop gateway s
 
 ### Run deploy.sh
 
-Next, execute the script at: `<PathToClone>/arm/gateway/deploy.sh` with the following arguments:
+Next, execute the script at: [`<PathToClone>/arm/gateway/deploy.sh`](/arm/gateway/deploy.sh) with the following arguments:
 
 - `-g` The Name of the Azure Resource Group to deploy the gateway resources. It will be created if it doesn't exist.
 - `-l` Location. Values from: `az account list-locations`.
@@ -51,6 +51,23 @@ Next, execute the script at: `<PathToClone>/arm/gateway/deploy.sh` with the foll
 
 ```shell
 $ deploy.sh -g MyResoruceGroup -l eastus -u Admin -p SoSecure1 -c ./Cert.p12 -k 12345
+```
+
+### Configure DNS
+
+The deploy script will take several minutes to run. When it finishes, you should see output similar to this:
+
+```ansi
+[32m Register Remote Desktop Gateway with your DNS using one of the following two options: [0m
+
+  - Create an A-Record:     gateway.example.com -> 80.121.8.170
+  - Create an CNAME-Record: gateway.example.com -> rdg-h2q6vzjonvnhq.eastus.cloudapp.azure.com
+
+
+Use the following to configure your labs to use the gateway:
+
+  - Gateway hostname:     gateway.example.com
+  - Gateway token secret: bb1fhnulQQufXoQRkCf1Lzy2vcg/zAVUhlAhUCHd0EajG0afA8RvBA==
 ```
 
 ## Remote Desktop Gateway Terms
