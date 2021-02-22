@@ -122,4 +122,7 @@ certBase64=$( openssl base64 -A -in "$exportFile" )
 
 echo "{ \"thumbprint\": \"$thumbprint\", \"password\": \"$password\", \"base64\": \"$certBase64\" }" > $AZ_SCRIPTS_OUTPUT_PATH
 
+echo "Deleting script runner managed identity"
+echo "$AZ_SCRIPTS_USER_ASSIGNED_IDENTITY"
+
 echo "Done."
