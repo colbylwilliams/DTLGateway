@@ -107,26 +107,26 @@ fi
 # echo "Generating certificate '$certName' in KeyVault '$vaultName'"
 
 # remove e so az group show won't exit if an existing group isn't found
-set +e
+# set +e
 
-echo "Checking for existing certificate '$certName'" >> $logFile
-echo "Checking for existing certificate '$certName'"
-cert=$( az keyvault certificate show --vault-name $vaultName -n $certName )
+# echo "Checking for existing certificate '$certName'" >> $logFile
+# echo "Checking for existing certificate '$certName'"
+# cert=$( az keyvault certificate show --vault-name $vaultName -n $certName )
 
-set -e
+# set -e
 
-if [ -z "$cert" ]; then
+# if [ -z "$cert" ]; then
 
 echo "Creating new certificate '$certName'" >> $logFile
-    echo "Creating new certificate '$certName'"
-    # private key is added as a secret that can be retrieved in the Resource Manager template
-    az keyvault certificate create --vault-name $vaultName -n $certName -p "$certPolicy"
+echo "Creating new certificate '$certName'"
+# private key is added as a secret that can be retrieved in the Resource Manager template
+az keyvault certificate create --vault-name $vaultName -n $certName -p "$certPolicy"
 
 echo "Getting certificate details" >> $logFile
-    echo "Getting certificate details"
-    cert=$( az keyvault certificate show --vault-name $vaultName -n $certName )
+echo "Getting certificate details"
+cert=$( az keyvault certificate show --vault-name $vaultName -n $certName )
 
-fi
+# fi
 
 echo "Getting secret for certificate '$certName'" >> $logFile
 echo "Getting secret for certificate '$certName'"
