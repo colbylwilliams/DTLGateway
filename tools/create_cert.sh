@@ -1,10 +1,10 @@
-#!/bin/sh
+#!/bin/bash -e
 
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-set -e
-
+echo "Starting script create_cert.."
+echo ""
 
 cdir=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
 tdir="$cdir/tmp"
