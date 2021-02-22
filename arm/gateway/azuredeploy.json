@@ -93,7 +93,7 @@
     "githubRepoPath": "src/DTLGateway",
     "createSignCertificate": "[or(empty(parameters('signCertificate')), empty(parameters('signCertificatePassword')), empty(parameters('signCertificateThumbprint')))]",
     "createSignCertificateIdentity": "createSignCertificateIdentity",
-    "createSignCertificateScriptUri": "https://raw.githubusercontent.com/colbylwilliams/DTLGateway/main/tools/Az-CreateSigningCertificate.ps1"
+    "createSignCertificateScriptUri": "https://raw.githubusercontent.com/colbylwilliams/DTLGateway/main/tools/create_cert.sh"
   },
   "resources": [
     {
@@ -370,7 +370,7 @@
     {
       "condition": "[variables('createSignCertificate')]",
       "type": "Microsoft.Resources/deploymentScripts",
-      "kind": "AzurePowerShell",
+      "kind": "AzureCLI",
       "name": "createSignCertificateScript",
       "apiVersion": "2020-10-01",
       "location": "[resourceGroup().location]",
@@ -388,9 +388,9 @@
       ],
       "properties": {
         "forceUpdateTag": "[parameters('utcValue')]",
-        "azPowerShellVersion": "5.4",
+        "azCliVersion": "2.9.1",
         "timeout": "PT1H",
-        "arguments": "[format(' -vaultName {0}', variables('keyVaultName'))]",
+        "arguments": "[format(' -v {0}', variables('keyVaultName'))]",
         "cleanupPreference": "Always",
         "retentionInterval": "P1D",
         "primaryScriptUri": "[variables('createSignCertificateScriptUri')]"
