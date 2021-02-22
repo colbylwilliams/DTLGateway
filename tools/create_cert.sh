@@ -15,7 +15,7 @@ secretFile="$tdir/cert_in.pem"
 exportFile="$tdir/cert_out.p12"
 
 # create output file for local development
-if [ ! -z "$AZ_SCRIPTS_OUTPUT_PATH" ]; then
+if [ -z "$AZ_SCRIPTS_OUTPUT_PATH" ]; then
     AZ_SCRIPTS_PATH_OUTPUT_DIRECTORY="$tdir"
     AZ_SCRIPTS_PATH_SCRIPT_OUTPUT_FILE_NAME="scriptoutputs.json"
     AZ_SCRIPTS_OUTPUT_PATH="$AZ_SCRIPTS_PATH_OUTPUT_DIRECTORY/$AZ_SCRIPTS_PATH_SCRIPT_OUTPUT_FILE_NAME"
