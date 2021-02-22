@@ -85,7 +85,6 @@
     "loadBalancerName": "[concat(variables('resourcePrefix'),'-lb')]",
     "publicIPAddressName": "[concat(variables('resourcePrefix'),'-pip')]",
     "loadBalancerBackEndName": "gatewayBackEnd",
-    // "loadBalancerNatPoolName": "gatewayNatPool",
     "loadBalancerFrontEndName": "gatewayFrontEnd",
     "bastionHostName": "[concat(variables('resourcePrefix'),'-bh')]",
     "bastionIPAddressName": "[concat(variables('resourcePrefix'),'-bh-pip')]",
@@ -616,22 +615,6 @@
           }
         ],
         "inboundNatPools": []
-        //   {
-        //     "name": "[variables('loadBalancerNatPoolName')]",
-        //     "properties": {
-        //       "frontendPortRangeStart": 50000,
-        //       "frontendPortRangeEnd": 50119,
-        //       "backendPort": 3389,
-        //       "protocol": "Tcp",
-        //       "idleTimeoutInMinutes": 4,
-        //       "enableFloatingIP": false,
-        //       "enableTcpReset": false,
-        //       "frontendIPConfiguration": {
-        //         "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/frontendIPConfigurations/', variables('loadBalancerFrontEndName'))]"
-        //       }
-        //     }
-        //   }
-        // ]
       }
     },
     {
@@ -728,10 +711,6 @@
                           }
                         ],
                         "loadBalancerInboundNatPools": []
-                        //   {
-                        //     "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName')), '/inboundNatPools/', variables('loadBalancerNatPoolName'))]"
-                        //   }
-                        // ]
                       }
                     }
                   ]
