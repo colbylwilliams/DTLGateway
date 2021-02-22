@@ -93,7 +93,9 @@
     "githubRepoPath": "src/DTLGateway",
     "createSignCertificate": "[or(empty(parameters('signCertificate')), empty(parameters('signCertificatePassword')), empty(parameters('signCertificateThumbprint')))]",
     "createSignCertificateIdentity": "createSignCertificateIdentity",
-    "createSignCertificateScriptUri": "https://raw.githubusercontent.com/colbylwilliams/DTLGateway/main/tools/create_cert.sh"
+    "createSignCertificateScriptUri": "https://raw.githubusercontent.com/colbylwilliams/DTLGateway/main/tools/create_cert.sh",
+    "bootstrapRoleAssignmentId": "[guid(concat(resourceGroup().id, 'contributor'))]",
+    "contributorRoleDefinitionId": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]"
   },
   "resources": [
     {
@@ -300,6 +302,21 @@
     },
     {
       "condition": "[variables('createSignCertificate')]",
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2018-09-01-preview",
+      "name": "[variables('bootstrapRoleAssignmentId')]",
+      "dependsOn": [
+        "[variables('createSignCertificateIdentity')]"
+      ],
+      "properties": {
+        "roleDefinitionId": "[variables('contributorRoleDefinitionId')]",
+        "principalId": "[if(variables('createSignCertificate'), reference(variables('createSignCertificateIdentity'), '2018-11-30').principalId, json('null'))]",
+        "scope": "[resourceGroup().id]",
+        "principalType": "ServicePrincipal"
+      }
+    },
+    {
+      "condition": "[variables('createSignCertificate')]",
       "type": "Microsoft.Resources/deployments",
       "name": "createSignCertificateIdentityAccessPolicyDeployment",
       "apiVersion": "2019-10-01",
@@ -383,6 +400,7 @@
       },
       "dependsOn": [
         "[variables('createSignCertificateIdentity')]",
+        "[variables('bootstrapRoleAssignmentId')]",
         "createSignCertificateIdentityAccessPolicyDeployment",
         "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
       ],
@@ -390,9 +408,9 @@
         "forceUpdateTag": "[parameters('utcValue')]",
         "azCliVersion": "2.9.1",
         "timeout": "PT1H",
-        "arguments": "[format(' -v {0}', variables('keyVaultName'))]",
-        "cleanupPreference": "Always",
-        "retentionInterval": "P1D",
+        "arguments": "[format('-v {0}', variables('keyVaultName'))]",
+        "cleanupPreference": "OnExpiration",
+        "retentionInterval": "PT1H",
         "primaryScriptUri": "[variables('createSignCertificateScriptUri')]"
       }
     },
@@ -884,10 +902,6 @@
       "type": "string",
       "value": "[variables('functionAppName')]"
     },
-    // "gatewayToken": {
-    //   "type": "string",
-    //   "value": "[listKeys(resourceId('Microsoft.Web/sites/functions', variables('functionAppName'), 'CreateToken'), '2019-08-01').gateway]"
-    // },
     "gatewayIP": {
       "type": "string",
       "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddressName')), '2017-04-01').ipAddress]"
