@@ -21,16 +21,16 @@ secretFile="$tdir/cert_in.pem"
 exportFile="$tdir/cert_out.p12"
 
 # create output file for local development
-if [ ! -z "$AZ_SCRIPTS_OUTPUT_PATH" ]; then
-    AZ_SCRIPTS_OUTPUT_PATH="$tdir/output.json"
-fi
+# if [ ! -z "$AZ_SCRIPTS_OUTPUT_PATH" ]; then
+#     AZ_SCRIPTS_OUTPUT_PATH="$tdir/output.json"
+# fi
 
 # create output file for local development
-if [ ! -z "$AZ_SCRIPTS_PATH_OUTPUT_DIRECTORY" ]; then
-    AZ_SCRIPTS_PATH_OUTPUT_DIRECTORY="$tdir"
-fi
+# if [ ! -z "$AZ_SCRIPTS_PATH_OUTPUT_DIRECTORY" ]; then
+#     AZ_SCRIPTS_PATH_OUTPUT_DIRECTORY="$tdir"
+# fi
 
-logFile="$AZ_SCRIPTS_PATH_OUTPUT_DIRECTORY/log.txt"
+# logFile="$AZ_SCRIPTS_PATH_OUTPUT_DIRECTORY/log.txt"
 
 # echo "Starting script create_cert.." >> $logFile
 
