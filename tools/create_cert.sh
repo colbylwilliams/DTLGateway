@@ -13,12 +13,12 @@ secretFile="$tdir/cert_in.pem"
 exportFile="$tdir/cert_out.p12"
 
 # create output file for local development
-if [ ! -f "$AZ_SCRIPTS_OUTPUT_PATH" ]; then
+if [ ! -z "$AZ_SCRIPTS_OUTPUT_PATH" ]; then
     AZ_SCRIPTS_OUTPUT_PATH="$tdir/output.json"
 fi
 
 # create output file for local development
-if [ ! -d "$AZ_SCRIPTS_PATH_OUTPUT_DIRECTORY" ]; then
+if [ ! -z "$AZ_SCRIPTS_PATH_OUTPUT_DIRECTORY" ]; then
     AZ_SCRIPTS_PATH_OUTPUT_DIRECTORY="$tdir"
 fi
 
@@ -160,7 +160,7 @@ openssl pkcs12 -export -in "$secretFile" -out "$exportFile" -password pass:$pass
 
 # echo "base64 encoding certificate file '$exportFile'" >> $logFile
 echo "base64 encoding certificate file '$exportFile'"
-certBase64=$( base64 "$exportFile" )
+certBase64=$( base64 "$exportFile" -b 0 )
 
 # jq -n --arg thumbprint $thumbprint --arg password $password --arg certBase64 $certBase64 \
 #       '{ "thumbprint": $thumbprint, "password": $password, "base64": $certBase64 }' > $AZ_SCRIPTS_OUTPUT_PATH
