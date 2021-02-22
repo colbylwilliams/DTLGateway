@@ -24,7 +24,7 @@ fi
 
 logFile="$AZ_SCRIPTS_PATH_OUTPUT_DIRECTORY/log.txt"
 
-echo "Starting script create_cert.." >> $logFile
+# echo "Starting script create_cert.." >> $logFile
 
 certName="SignCert"
 
@@ -91,14 +91,14 @@ done
 
 # check for the azure cli
 if ! [ -x "$(command -v az)" ]; then
-    'Error: az command is not installed.\n  The Azure CLI is required to run this deploy script.  Please install the Azure CLI, run az login, then try again.\n  Aborting.' >> $logFile
+    # 'Error: az command is not installed.\n  The Azure CLI is required to run this deploy script.  Please install the Azure CLI, run az login, then try again.\n  Aborting.' >> $logFile
     echo 'Error: az command is not installed.\n  The Azure CLI is required to run this deploy script.  Please install the Azure CLI, run az login, then try again.\n  Aborting.' >&2
     exit 1
 fi
 
 # check for jq
 if ! [ -x "$(command -v jq)" ]; then
-    echo 'Error: jq command is not installed.\n  jq is required to run this deploy script.  Please install jq from https://stedolan.github.io/jq/download/, then try again.\n  Aborting.' >> $logFile
+    # echo 'Error: jq command is not installed.\n  jq is required to run this deploy script.  Please install jq from https://stedolan.github.io/jq/download/, then try again.\n  Aborting.' >> $logFile
     echo 'Error: jq command is not installed.\n  jq is required to run this deploy script.  Please install jq from https://stedolan.github.io/jq/download/, then try again.\n  Aborting.' >&2
     exit 1
 fi
@@ -117,53 +117,55 @@ fi
 
 # if [ -z "$cert" ]; then
 
-echo "Creating new certificate '$certName'" >> $logFile
+# echo "Creating new certificate '$certName'" >> $logFile
 echo "Creating new certificate '$certName'"
 # private key is added as a secret that can be retrieved in the Resource Manager template
 az keyvault certificate create --vault-name $vaultName -n $certName -p "$certPolicy"
 
-echo "Getting certificate details" >> $logFile
+# echo "Getting certificate details" >> $logFile
 echo "Getting certificate details"
 cert=$( az keyvault certificate show --vault-name $vaultName -n $certName )
 
 # fi
 
-echo "Getting secret for certificate '$certName'" >> $logFile
+# echo "Getting secret for certificate '$certName'" >> $logFile
 echo "Getting secret for certificate '$certName'"
 sid=$( echo $cert | jq -r '.sid' )
 
-echo "Getting thumbprint for certificate '$certName'" >> $logFile
+# echo "Getting thumbprint for certificate '$certName'" >> $logFile
 echo "Getting thumbprint for certificate '$certName'"
 thumbprint=$( echo $cert | jq -r '.x509ThumbprintHex' )
 
-echo "Getting value for secret '$certName'" >> $logFile
+# echo "Getting value for secret '$certName'" >> $logFile
 echo "Getting value for secret '$certName'"
 secret=$( az keyvault secret show --id $sid --query value -o tsv )
 
-echo "Generating random password for certificate export" >> $logFile
+# echo "Generating random password for certificate export" >> $logFile
 echo "Generating random password for certificate export"
 password=$( openssl rand -base64 32 | tr -d /=+ | cut -c -16 )
 
 if [ ! -d "$tdir" ]; then
-    echo "Creating temporary directory $tdir" >> $logFile
+    # echo "Creating temporary directory $tdir" >> $logFile
     echo "Creating temporary directory $tdir"
     mkdir "$tdir"
 fi
 
-echo "Writing certificate to file '$secretFile'" >> $logFile
+# echo "Writing certificate to file '$secretFile'" >> $logFile
 echo "Writing certificate to file '$secretFile'"
 echo "$secret" > "$secretFile"
 
-echo "Exporting certificate file '$exportFile'" >> $logFile
+# echo "Exporting certificate file '$exportFile'" >> $logFile
 echo "Exporting certificate file '$exportFile'"
 openssl pkcs12 -export -in "$secretFile" -out "$exportFile" -password pass:$password -name "Azure DTL Gateway"
 
-echo "base64 encoding certificate file '$exportFile'" >> $logFile
+# echo "base64 encoding certificate file '$exportFile'" >> $logFile
 echo "base64 encoding certificate file '$exportFile'"
 certBase64=$( base64 "$exportFile" )
 
-jq -n --arg thumbprint $thumbprint --arg password $password --arg certBase64 $certBase64 \
-      '{ "thumbprint": $thumbprint, "password": $password, "base64": $certBase64 }' > $AZ_SCRIPTS_OUTPUT_PATH
+# jq -n --arg thumbprint $thumbprint --arg password $password --arg certBase64 $certBase64 \
+#       '{ "thumbprint": $thumbprint, "password": $password, "base64": $certBase64 }' > $AZ_SCRIPTS_OUTPUT_PATH
 
-echo "Done." >> $logFile
+echo "{ \"thumbprint\": \"$thumbprint\", \"password\": \"$password\", \"base64\": \"$certBase64\" }" > $AZ_SCRIPTS_OUTPUT_PATH
+
+# echo "Done." >> $logFile
 echo "Done."
