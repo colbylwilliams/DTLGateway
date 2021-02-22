@@ -9,7 +9,15 @@ echo ""
 cdir=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
 tdir="$cdir/tmp"
 
+if [ ! -d "$tdir" ]; then
+    # echo "Creating temporary directory $tdir" >> $logFile
+    echo "Creating temporary directory $tdir"
+    mkdir "$tdir"
+    # mkdir "$tdir/test"
+fi
+
 secretFile="$tdir/cert_in.pem"
+# secretFile="$tdir/cert_in.p12"
 exportFile="$tdir/cert_out.p12"
 
 # create output file for local development
@@ -124,7 +132,10 @@ az keyvault certificate create --vault-name $vaultName -n $certName -p "$certPol
 
 # echo "Getting certificate details" >> $logFile
 echo "Getting certificate details"
+# az keyvault certificate show --vault-name $vaultName -n $certName
 cert=$( az keyvault certificate show --vault-name $vaultName -n $certName )
+
+# az keyvault certificate download --vault-name $vaultName -n $certName -f "$tdir/test/cert.pem"
 
 # fi
 
@@ -132,35 +143,46 @@ cert=$( az keyvault certificate show --vault-name $vaultName -n $certName )
 echo "Getting secret for certificate '$certName'"
 sid=$( echo $cert | jq -r '.sid' )
 
+# echo "Getting key for certificate '$certName'"
+# kid=$( echo $cert | jq -r '.kid' )
+
 # echo "Getting thumbprint for certificate '$certName'" >> $logFile
 echo "Getting thumbprint for certificate '$certName'"
 thumbprint=$( echo $cert | jq -r '.x509ThumbprintHex' )
 
 # echo "Getting value for secret '$certName'" >> $logFile
-echo "Getting value for secret '$certName'"
-secret=$( az keyvault secret show --id $sid --query value -o tsv )
+# echo "Downloading certificate '$certName'"
+# az keyvault secret show --id $sid
+# secret=$( az keyvault secret show --id $sid --query value -o tsv )
+
+az keyvault secret download --id $sid -f "$secretFile"
+
+# echo ""
+# echo "$secret"
+# echo ""
+
+# echo "Getting value for secret '$certName'" >> $logFile
+# echo "Getting value for key '$certName'"
+# az keyvault key show --id $kid
+# key=$( az keyvault key show --id $kid --query value -o tsv )
+
+# az keyvault key download --id $kid -f "$secretFile"
+
+# echo ""
+# echo "$key"
+# echo ""
 
 # echo "Generating random password for certificate export" >> $logFile
 echo "Generating random password for certificate export"
 password=$( openssl rand -base64 32 | tr -d /=+ | cut -c -16 )
 
-if [ ! -d "$tdir" ]; then
-    # echo "Creating temporary directory $tdir" >> $logFile
-    echo "Creating temporary directory $tdir"
-    mkdir "$tdir"
-fi
-
-# echo "Writing certificate to file '$secretFile'" >> $logFile
-echo "Writing certificate to file '$secretFile'"
-echo "$secret" > "$secretFile"
-
-# echo "Exporting certificate file '$exportFile'" >> $logFile
 echo "Exporting certificate file '$exportFile'"
 openssl pkcs12 -export -in "$secretFile" -out "$exportFile" -password pass:$password -name "Azure DTL Gateway"
 
 # echo "base64 encoding certificate file '$exportFile'" >> $logFile
-echo "base64 encoding certificate file '$exportFile'"
-certBase64=$( base64 "$exportFile" -b 0 )
+# echo "base64 encoding certificate file '$exportFile'"
+# certBase64=$( base64 "$exportFile" -w 0 )
+certBase64=$( openssl base64 -A -in "$exportFile" )
 
 # jq -n --arg thumbprint $thumbprint --arg password $password --arg certBase64 $certBase64 \
 #       '{ "thumbprint": $thumbprint, "password": $password, "base64": $certBase64 }' > $AZ_SCRIPTS_OUTPUT_PATH
