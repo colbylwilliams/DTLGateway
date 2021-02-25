@@ -41,7 +41,7 @@ Options:
 
   -k  The SSL certificate password for installation.
 
-  -i  Number of gateway scale set VM instances. default: 1
+  -i  Number of vms in the gateway scale set. default: 1
 
 Examples:
 
