@@ -123,6 +123,7 @@ if [ -d "$artifactsSource" ]; then
   az storage blob sync --subscription $sub --account-name $artifactsAccount -c $artifactsContainer -s "$artifactsSource" > /dev/null 2>&1 &
 fi
 
+
 gateway=$( echo $deploy | jq '.gateway.value' )
 gatewayIP=$( echo $gateway | jq -r '.ip' )
 gatewayFQDN=$( echo $gateway | jq -r '.fqdn' )
@@ -141,6 +142,7 @@ if [ "$gatewayFunction" != "null" ]; then
     gatewayToken=$(az functionapp function keys set --subscription $sub -g $rg -n $gatewayFunction --function-name CreateToken --key-name gateway --query value -o tsv )
   fi
 fi
+
 
 echo "\nDone."
 
