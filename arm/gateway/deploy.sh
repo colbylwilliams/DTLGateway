@@ -37,7 +37,7 @@ Options:
 
 Examples:
 
-    $ deploy.sh -g MyResoruceGroup -l eastus -u Admin -p SoSecure1 -c ./Cert.p12 -k 12345
+    $ deploy.sh -g MyResoruceGroup -l eastus -u DevUser -p SoSecure1 -c ./Cert.p12 -k 12345
 
 endHelp
 )
