@@ -4,7 +4,6 @@
  */
 
 using System;
-// using System.Configuration;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;

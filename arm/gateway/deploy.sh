@@ -58,7 +58,7 @@ fi
 
 # defaults
 instances=1
-sub=$( az account show | jq -r '.id' )
+# sub=$( az account show | jq -r '.id' )
 
 # get arg values
 while getopts ":hs:g:l:u:p:c:k:i:" opt; do
@@ -145,8 +145,8 @@ gatewayFQDN=$( echo $gateway | jq -r '.fqdn' )
 gatewayScaleSet=$( echo $gateway | jq -r '.scaleSet' )
 gatewayFunction=$( echo $gateway | jq -r '.function' )
 
-echo "\nScaling gateway"
-az vmss scale --subscription $sub -g $rg -n $gatewayScaleSet --new-capacity 1 > /dev/null 2>&1 &
+echo "\nScaling gateway to $instances instances"
+az vmss scale --subscription $sub -g $rg -n $gatewayScaleSet --new-capacity $instances > /dev/null 2>&1 &
 
 if [ "$gatewayFunction" != "null" ]; then
   echo "\nGetting gateway token"

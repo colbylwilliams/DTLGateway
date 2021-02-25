@@ -31,6 +31,5 @@ namespace DTLGateway.Model
         public int Port { get; set; }
 
         public int ExpiresOn { get; set; }
-
     }
 }

@@ -86,13 +86,13 @@ done
 
 # check for the azure cli
 if ! [ -x "$(command -v az)" ]; then
-    echo 'Error: az command is not installed.\n  The Azure CLI is required to run this deploy script.  Please install the Azure CLI, run az login, then try again.\n  Aborting.' >&2
+    echo 'Error: az command is not installed.\nThe Azure CLI is required to run this deploy script. Please install the Azure CLI, run az login, then try again.' >&2
     exit 1
 fi
 
 # check for jq
 if ! [ -x "$(command -v jq)" ]; then
-    echo 'Error: jq command is not installed.\n  jq is required to run this deploy script.  Please install jq from https://stedolan.github.io/jq/download/, then try again.\n  Aborting.' >&2
+    echo 'Error: jq command is not installed.\njq is required to run this deploy script. Please install jq from https://stedolan.github.io/jq/download/, then try again.' >&2
     exit 1
 fi
 
@@ -104,7 +104,7 @@ az keyvault certificate create --vault-name $vaultName -n $certName -p "$certPol
 echo "Getting certificate details"
 cert=$( az keyvault certificate show --vault-name $vaultName -n $certName )
 
-echo "Getting secret for certificate '$certName'"
+echo "Getting secret id for certificate '$certName'"
 sid=$( echo $cert | jq -r '.sid' )
 
 echo "Getting thumbprint for certificate '$certName'"
@@ -121,6 +121,9 @@ openssl pkcs12 -export -in "$secretFile" -out "$exportFile" -password pass:$pass
 certBase64=$( openssl base64 -A -in "$exportFile" )
 
 echo "{ \"thumbprint\": \"$thumbprint\", \"password\": \"$password\", \"base64\": \"$certBase64\" }" > $AZ_SCRIPTS_OUTPUT_PATH
+
+echo "Cleaning up temporary files"
+rm -rf "$tdir"
 
 echo "Deleting script runner managed identity"
 az identity delete --ids "$AZ_SCRIPTS_USER_ASSIGNED_IDENTITY"

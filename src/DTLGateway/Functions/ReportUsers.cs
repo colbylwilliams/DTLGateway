@@ -17,7 +17,6 @@ namespace DTLGateway.Functions
 {
     public static class ReportUsers
     {
-
         [FunctionName(nameof(ReportUsers))]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Function, "get", Route = "report/users")] HttpRequest req,
