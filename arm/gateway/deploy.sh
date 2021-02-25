@@ -69,19 +69,28 @@ fi
 
 # check for the azure cli
 if ! [ -x "$(command -v az)" ]; then
-    echo 'Error: az command is not installed.\n  The Azure CLI is required to run this deploy script.  Please install the Azure CLI, run az login, then try again.\n  Aborting.' >&2; exit 1
+    echo "Error: az command is not installed.\n  The Azure CLI is required to run this deploy script.  Please install the Azure CLI, run az login, then try again.\n  Aborting." >&2; exit 1
 fi
 
 # check for jq
 if ! [ -x "$(command -v jq)" ]; then
-    echo 'Error: jq command is not installed.\n  jq is required to run this deploy script.  Please install jq from https://stedolan.github.io/jq/download/, then try again.\n  Aborting.' >&2; exit 1
+    echo "Error: jq command is not installed.\n  jq is required to run this deploy script.  Please install jq from https://stedolan.github.io/jq/download/, then try again.\n  Aborting." >&2; exit 1
 fi
 
 echo ""
 
+# TODO remove this after new version released 3/2
+function verCheck { printf "%03d%03d%03d" $(echo "$1" | tr '.' ' '); }
+azversion=$( az version | jq -r '."azure-cli"' )
+if [ $(verCheck $azversion) -gt $(verCheck 2.18.0) ]; then
+    echo "There is a bug in az cli 2.19.0+ storage module that prevents this script from executing correctly.\n  Please downgrade to version 2.18.0 and run this script again" >&2; exit 1
+fi
+
+
 # check if logged in to azure cli
 az account show -s $sub 1> /dev/null
 
+# check if the resource group exists. if not, create it
 az group show --subscription $sub -g $rg 1> /dev/null || echo "Creating resource group '$rg'." && az group create --subscription $sub -g $rg -l $region 1> /dev/null
 
 
@@ -101,7 +110,7 @@ deploy=$(az deployment group create --subscription $sub -g $rg \
                       sslCertificateThumbprint=$sslCertThumbprint | jq '.properties.outputs' )
 
 if [ -z "$deploy" ]; then
-  echo "Failed to deploy arm template - aborting."; exit 1
+  echo "Failed to deploy arm template - aborting." >&2; exit 1
 fi
 
 
@@ -109,10 +118,9 @@ if [ -d "$artifactsSource" ]; then
   artifacts=$( echo $deploy | jq '.artifactsStorage.value' )
   artifactsAccount=$( echo $artifacts | jq -r '.account' )
   artifactsContainer=$( echo $artifacts | jq -r '.container' )
-  artifactsSasToken=$( echo $artifacts | jq -r '.sasToken' )
 
   echo "\nSynchronizing artifacts"
-  az storage blob sync --subscription $sub --account-name $artifactsAccount --sas-token $artifactsSasToken -c $artifactsContainer -s "$artifactsSource" # > /dev/null 2>&1 &
+  az storage blob sync --subscription $sub --account-name $artifactsAccount -c $artifactsContainer -s "$artifactsSource" > /dev/null 2>&1 &
 fi
 
 gateway=$( echo $deploy | jq '.gateway.value' )
