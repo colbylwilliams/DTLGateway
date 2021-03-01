@@ -1,6 +1,6 @@
 **Important: Azure CLI versions 2.19.0 and 2.19.1 cannot be used to deploy this sample due to [auth bugs in the storage module](https://github.com/Azure/azure-cli/issues?q=sync+label%3AStorage). If you have either of these versions installed, please upgrade to the latest version of the CLI (scheduled for March 3rd) or downgrade to 2.18.0.**
 
-# DTLGateway
+# DTL with Remote Desktop Gateway Sample
 
 Azure DevTest Labs allows you to configure labs to use a remote desktop gateway to ensure secure access to lab virtual machines (VMs) without exposing the RDP port. Once configured, DevTestLabs changes the behavior of the lab VMs Connect button to generate a machine-specific RDP with a temporary authentication token from the gateway service.
 
@@ -78,6 +78,10 @@ Use the following to configure your labs to use the gateway:
 ```
 
 Create an A-Record (or CNAME-Record) in your DNS per the instructions in the output.
+
+## Connect DevTestLabs to the Gateway
+
+...
 
 ## Remote Desktop Gateway Terms
 

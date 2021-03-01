@@ -4,12 +4,12 @@
  */
 
 using System.Threading.Tasks;
-using DTLGateway.Model;
+using RDGateway.Model;
 using Microsoft.Azure.Cosmos.Table;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Logging;
 
-namespace DTLGateway.Functions
+namespace RDGateway.Functions
 {
     public static class TrackToken
     {

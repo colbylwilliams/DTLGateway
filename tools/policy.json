@@ -1,0 +1,33 @@
+{
+    "issuerParameters": {
+        "name": "Self"
+    },
+    "keyProperties": {
+        "exportable": true,
+        "keySize": 2048,
+        "reuseKey": true
+    },
+    "lifetimeActions": [
+        {
+            "action": {
+                "actionType": "AutoRenew"
+            },
+            "trigger": {
+                "daysBeforeExpiry": 60
+            }
+        }
+    ],
+    "secretProperties": {
+        "contentType": "application/x-pkcs12"
+    },
+    "x509CertificateProperties": {
+        "ekus": [
+            "1.3.6.1.5.5.7.3.2"
+        ],
+        "keyUsage": [
+            "digitalSignature"
+        ],
+        "subject": "CN=Azure DTL Gateway",
+        "validityInMonths": 12
+    }
+}

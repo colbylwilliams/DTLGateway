@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Cosmos.Table;
 using Newtonsoft.Json;
 
-namespace DTLGateway
+namespace RDGateway
 {
     public static class Extensions
     {

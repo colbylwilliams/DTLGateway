@@ -5,7 +5,7 @@
 
 using System;
 using System.Threading.Tasks;
-using DTLGateway.Model;
+using RDGateway.Model;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Cosmos.Table;
@@ -13,21 +13,21 @@ using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Extensions.Logging;
 
-namespace DTLGateway.Functions
+namespace RDGateway.Functions
 {
-    public static class ReportTokens
+    public static class ReportUsers
     {
-        [FunctionName(nameof(ReportTokens))]
+        [FunctionName(nameof(ReportUsers))]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "report/tokens")] HttpRequest req,
-            [Table("tokens")] CloudTable tokenTable,
+            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "report/users")] HttpRequest req,
+            [Table("users")] CloudTable userTable,
             ILogger log)
         {
             TableContinuationToken continuationToken;
 
             try
             {
-                continuationToken = PagedEntities<TokenEntity>.GetContinuationToken(req);
+                continuationToken = PagedEntities<UserEntity>.GetContinuationToken(req);
             }
             catch (Exception exc)
             {
@@ -36,11 +36,11 @@ namespace DTLGateway.Functions
                 return new BadRequestResult();
             }
 
-            var segment = await tokenTable.ExecuteQuerySegmentedAsync(new TableQuery<TokenEntity>(), continuationToken).ConfigureAwait(false);
+            var segment = await userTable.ExecuteQuerySegmentedAsync(new TableQuery<UserEntity>(), continuationToken).ConfigureAwait(false);
 
-            var result = new PagedEntities<TokenEntity>(segment)
+            var result = new PagedEntities<UserEntity>(segment)
             {
-                NextLink = segment.ContinuationToken != null ? PagedEntities<TokenEntity>.GetNextLink(req, segment.ContinuationToken) : null
+                NextLink = segment.ContinuationToken != null ? PagedEntities<UserEntity>.GetNextLink(req, segment.ContinuationToken) : null
             };
 
             return new OkObjectResult(result);

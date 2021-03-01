@@ -6,7 +6,7 @@
 using System;
 using Microsoft.Azure.Cosmos.Table;
 
-namespace DTLGateway.Model
+namespace RDGateway.Model
 {
     public sealed class UserEntity : TableEntity
     {

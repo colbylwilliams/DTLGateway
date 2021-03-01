@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Cosmos.Table;
 using Newtonsoft.Json;
 
-namespace DTLGateway.Model
+namespace RDGateway.Model
 {
     public sealed class PagedEntities<T>
         where T : ITableEntity

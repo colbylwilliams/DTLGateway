@@ -16,9 +16,9 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Security.Cryptography;
 using Newtonsoft.Json;
-using DTLGateway.Model;
+using RDGateway.Model;
 
-namespace DTLGateway.Functions
+namespace RDGateway.Functions
 {
     public static class CreateToken
     {

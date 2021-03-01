@@ -90,7 +90,7 @@
     "bastionIPAddressName": "[concat(variables('resourcePrefix'),'-bh-pip')]",
     "githubBranch": "main",
     "githubRepoUrl": "https://github.com/colbylwilliams/DTLGateway",
-    "githubRepoPath": "src/DTLGateway",
+    "githubRepoPath": "src/RDGateway",
     "createSignCertificate": "[or(empty(parameters('signCertificate')), empty(parameters('signCertificatePassword')), empty(parameters('signCertificateThumbprint')))]",
     "createSignCertificateIdentity": "createSignCertificateIdentity",
     "createSignCertificateScriptUri": "https://raw.githubusercontent.com/colbylwilliams/DTLGateway/main/tools/create_cert.sh",
